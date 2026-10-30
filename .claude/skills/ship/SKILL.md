@@ -2,6 +2,7 @@
 name: ship
 description: Finish the current branch and open a pull request - simplify the branch's changes, run lint, tests and the docs check, push and create the PR.
 disable-model-invocation: true
+model: sonnet
 ---
 
 # Ship a branch
