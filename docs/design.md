@@ -407,6 +407,9 @@ v1 is a library plus CLI for PDF and Markdown that extracts, verifies, merges, p
 - [ ] Merge context matching: is exact normalized-string matching good enough, or does it need fuzzy matching?
 - [ ] Document identity across revisions: user-set `document_id` only, or also infer it from file names?
 - [ ] Token counting for arbitrary models: LiteLLM's counter, or a conservative character heuristic as fallback?
+- [ ] Choosing the LLM backend: the extractor always builds the LiteLLM adapter, and a third-party backend registered under `citefield.llm_backends` can only be passed to `Extractor` directly. Should a setting such as `settings.llm.backend` select it through the entry point, and how does a backend get built from settings? Both change the config schema and the plugin protocol, so the answer needs an ADR.
+- [ ] Prompt order for prefix caching: the field list comes before the manual, so calls on the same document share only the system prompt. With the manual first, extra field batches, runs and chunks could reuse a cached prefix at a lower price. It changes the prompt, so it needs a new prompt version; compare both orders in the model bake-off.
+- [ ] Parallel calls: a document's batch calls run one after another, and `--workers` is accepted but not used yet. Should calls within a document run concurrently, files in a folder, or both, and how do they share the provider's rate limits?
 - [x] Final project name: citefield.
 
 ## Acknowledgements and licensing
