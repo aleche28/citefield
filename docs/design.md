@@ -4,6 +4,8 @@ Version: v1.0.0
 Date: Oct 30, 2026
 Author: Alessio Chessa
 
+This doc describes the current design. The reasons behind each decision are in the [architecture decision records](adr/README.md).
+
 ## Overview
 
 citefield is an open-source Python library and CLI that reads a technical manual, extracts a configured set of metadata fields with verifiable evidence, proposes new fields, and emits JSON that a human can validate value by value.
@@ -25,6 +27,8 @@ citefield is an open-source Python library and CLI that reads a technical manual
 4. Pluggable at the edges: the LLM backend and the document parser.
 5. Never silently overwrite human review work.
 
+Decision record: [ADR-0003](adr/0003-require-evidence-for-every-value-verified-in-code.md).
+
 ## Architecture
 
 A run is a straight pipeline: parse the document, plan the calls, let the LLM propose, then verify, merge and add proposals in code. The parser and the LLM backend are the two plug-in points; the module layout is under Public API and CLI.
@@ -45,6 +49,8 @@ The default parser is **pdfplumber**, installed with the core package; **docling
 | PyMuPDF    | AGPL-3.0 or commercial                    | Light                    | Good                      | PDF and more              | Extra `citefield[pymupdf]`, opt-in only |
 
 Markdown needs no parser: a built-in reader splits it by headings.
+
+Decision record: [ADR-0004](adr/0004-pdfplumber-as-default-parser-with-optional-extras.md).
 
 **Parser interface.** Every parser implements one protocol and registers through the `citefield.parsers` entry point, so third-party parsers plug in without changes to the core.
 
@@ -180,6 +186,8 @@ Whether a value is stated or converted is not a signal: it is the value's `statu
 
 **Contract.** Signal names and semantics are part of the public API. Adding a signal is a minor version; renaming, removing or changing a range is a major version. The output's `output_schema_version` lets clients check what they read.
 
+Decision record: [ADR-0006](adr/0006-named-confidence-signals-without-aggregate-score.md).
+
 **Known limit.** `evidence_match` depends heavily on the parser's text quality. It is best-effort in v1, and the evaluation can compare parsers on the same documents.
 
 ## Output JSON
@@ -275,7 +283,7 @@ One JSON file per document, defined by pydantic models; the repo publishes the g
 
 ## Review, re-extraction and evaluation
 
-Human decisions are written into the output file, survive re-extraction, and become the evaluation set. The pattern follows Luca Bianchi's workshop (see Acknowledgements).
+Human decisions are written into the output file, survive re-extraction, and become the evaluation set. The pattern follows Luca Bianchi's workshop (see Acknowledgements). Decision record: [ADR-0007](adr/0007-store-reviews-in-the-output-file.md).
 
 **Review.** A value's `review.status` is `pending`, `accepted`, `edited` (with `reviewed_value`), `rejected` or `added` (a value the reviewer found and the LLM missed). A field left not_found can be confirmed as absent at field level (review status confirmed_absent). The core ships `apply_review(output, decisions)` to write decisions in; the UI that collects them is out of scope for v1.
 
@@ -318,7 +326,7 @@ reviewed = citefield.apply_review("out/filler-x200.json", decisions)
 report = citefield.evaluate("out/", config=config)
 ```
 
-The LLM backend is a protocol like the parser. The default adapter uses LiteLLM, which covers cloud APIs and local servers (Ollama, vLLM) behind one interface. Backends register through the `citefield.llm_backends` entry point.
+The LLM backend is a protocol like the parser. The default adapter uses LiteLLM, which covers cloud APIs and local servers (Ollama, vLLM) behind one interface. Backends register through the `citefield.llm_backends` entry point. Decision record: [ADR-0005](adr/0005-litellm-as-default-llm-backend.md).
 
 ```python
 class LLMBackend(Protocol):
@@ -359,7 +367,7 @@ citefield/
 
 ## Scope
 
-v1 is a library plus CLI for PDF and Markdown that extracts, verifies, merges, proposes, carries reviews over and evaluates. Everything else waits until v1 has run on real manuals.
+v1 is a library plus CLI for PDF and Markdown that extracts, verifies, merges, proposes, carries reviews over and evaluates. Everything else waits until v1 has run on real manuals. Decision record: [ADR-0008](adr/0008-v1-scope-text-and-tables-library-and-cli.md).
 
 | Area       | v1                                                                 | Later                                                                |
 | ---------- | ------------------------------------------------------------------ | -------------------------------------------------------------------- |
@@ -399,6 +407,8 @@ citefield is licensed under **Apache 2.0**, which adds an explicit patent grant 
 | PyMuPDF (extra) | AGPL-3.0 or commercial                    | Optional parser; installing it puts AGPL obligations on that setup |
 
 **Test data.** The repository contains only public or synthetic manuals. No proprietary documents, not even as fixtures.
+
+Decision records: [ADR-0002](adr/0002-license-under-apache-2-0.md) (license), [ADR-0009](adr/0009-public-or-synthetic-test-data-only.md) (test data), [ADR-0010](adr/0010-reuse-workshop-ideas-not-code.md) (workshop ideas, not code).
 
 **Sources**
 
