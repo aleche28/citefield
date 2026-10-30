@@ -68,4 +68,4 @@ citefield can also propose fields that aren't in your config, re-run extraction 
 
 ## License
 
-[Apache 2.0](LICENSE). The design is inspired by Luca Bianchi's workshop _Documents Are Not Knowledge_ (Codemotion Milan 2026); see the [acknowledgements](docs/design.md#acknowledgements-and-licensing).
+[Apache 2.0](LICENSE). The manuals in [`corpus/`](corpus/README.md) keep their own licenses, listed there. The design is inspired by Luca Bianchi's workshop _Documents Are Not Knowledge_ (Codemotion Milan 2026); see the [acknowledgements](docs/design.md#acknowledgements-and-licensing).

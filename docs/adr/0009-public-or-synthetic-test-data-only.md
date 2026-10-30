@@ -1,7 +1,8 @@
 # 0009. Use only public or synthetic manuals as test data
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-10-30
+- Superseded by: ADR-0011
 
 > Backfilled from [design.md](../design.md#acknowledgements-and-licensing) v1.0.0. The decision predates this record; rationale is limited to what the design doc states.
 

@@ -22,6 +22,7 @@ ADRs 0002–0010 were backfilled from design.md v1.0.0 when this log started.
 | [0006](0006-named-confidence-signals-without-aggregate-score.md) | Expose named confidence signals, without an aggregate score | Accepted | 2026-10-30 |
 | [0007](0007-store-reviews-in-the-output-file.md) | Store reviews in the output file and carry them over | Accepted | 2026-10-30 |
 | [0008](0008-v1-scope-text-and-tables-library-and-cli.md) | Limit v1 to text and tables, as a library and CLI | Accepted | 2026-10-30 |
-| [0009](0009-public-or-synthetic-test-data-only.md) | Use only public or synthetic manuals as test data | Accepted | 2026-10-30 |
+| [0009](0009-public-or-synthetic-test-data-only.md) | Use only public or synthetic manuals as test data | Superseded | 2026-10-30 |
 | [0010](0010-reuse-workshop-ideas-not-code.md) | Reuse the workshop's ideas, not its code | Accepted | 2026-10-30 |
+| [0011](0011-use-only-redistributable-manuals-as-test-data.md) | Use only redistributable or synthetic manuals as test data, committed in the repository | Accepted | 2026-10-30 |
 <!-- adr-index:end -->

@@ -418,9 +418,9 @@ citefield is licensed under **Apache 2.0**, which adds an explicit patent grant 
 | pypdf (extra)   | BSD-3-Clause                              | Optional parser                                                    |
 | PyMuPDF (extra) | AGPL-3.0 or commercial                    | Optional parser; installing it puts AGPL obligations on that setup |
 
-**Test data.** The repository contains only public or synthetic manuals. No proprietary documents, not even as fixtures.
+**Test data.** The repository contains only manuals that are public domain or openly licensed (redistributable), or synthetic. No proprietary documents, not even as fixtures, and "freely downloadable" is not enough. Real manuals live unmodified in [`corpus/`](../corpus/README.md), each with its license, source and checksum; they keep their own licenses and are not shipped in the package.
 
-Decision records: [ADR-0002](adr/0002-license-under-apache-2-0.md) (license), [ADR-0009](adr/0009-public-or-synthetic-test-data-only.md) (test data), [ADR-0010](adr/0010-reuse-workshop-ideas-not-code.md) (workshop ideas, not code).
+Decision records: [ADR-0002](adr/0002-license-under-apache-2-0.md) (license), [ADR-0011](adr/0011-use-only-redistributable-manuals-as-test-data.md) (test data), [ADR-0010](adr/0010-reuse-workshop-ideas-not-code.md) (workshop ideas, not code).
 
 **Sources**
 

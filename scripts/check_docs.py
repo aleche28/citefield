@@ -21,7 +21,7 @@ INDEX_START = "<!-- adr-index:start -->"
 INDEX_END = "<!-- adr-index:end -->"
 
 # Markdown files whose relative links are checked, besides everything under docs/.
-EXTRA_LINKED_FILES = ["README.md", "CLAUDE.md"]
+EXTRA_LINKED_FILES = ["README.md", "CLAUDE.md", "corpus/README.md"]
 EXTRA_LINKED_GLOBS = [".claude/skills/**/*.md"]
 
 STATUSES = {"Proposed", "Accepted", "Rejected", "Deprecated", "Superseded"}

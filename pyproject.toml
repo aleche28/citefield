@@ -47,6 +47,10 @@ litellm = "citefield.llm.litellm:LiteLLMBackend"
 [dependency-groups]
 dev = ["pytest", "ruff"]
 
+# The test corpus keeps its own licenses and is not shipped (ADR-0011).
+[tool.hatch.build.targets.sdist]
+exclude = ["/corpus"]
+
 [tool.ruff]
 line-length = 100
 extend-exclude = ["docs"]
