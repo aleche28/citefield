@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
 from typing import Any
 
 from pydantic import BaseModel
 
 from citefield.llm.base import Completion, Message
 
-Response = str | dict[str, Any] | Exception | Callable[[list[Message]], Any]
+Response = str | dict[str, Any] | Exception
 
 
 class FakeBackend:
     """Replays responses in order. A dict or str is validated against the schema like a real
-    model answer; an exception is raised; a callable gets the messages and returns either."""
+    model answer; an exception is raised."""
 
     name = "fake"
 
@@ -32,8 +31,6 @@ class FakeBackend:
         if not self.responses:
             raise AssertionError("FakeBackend ran out of responses")
         response = self.responses.pop(0)
-        if callable(response) and not isinstance(response, type):
-            response = response(messages)
         if isinstance(response, Exception):
             raise response
         text = response if isinstance(response, str) else json.dumps(response)

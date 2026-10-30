@@ -9,8 +9,8 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from citefield.config import Config, FieldDef, Settings
-from citefield.llm.base import LLMBackend
+from citefield.config import Config, FieldDef
+from citefield.llm.base import Completion, LLMBackend, Message
 from citefield.merge import Draft, field_status, merge
 from citefield.output import (
     DocumentInfo,
@@ -21,19 +21,15 @@ from citefield.output import (
     RunInfo,
     TokenUsage,
 )
-from citefield.parsers import get_parser
+from citefield.parsers import get_parser, parse_document
 from citefield.parsers.base import DocumentParser, ParsedDocument
 from citefield.planning import Plan, make_plan
 from citefield.prompts import extract_v1
-from citefield.verify import evidence_match
-
-# Field types whose values are parsed in code; the others are not implemented yet and keep
-# value null.
-SUPPORTED_TYPES = {"string", "enum"}
+from citefield.verify import PARSED_TYPES, evidence_match, parse_value
 
 
 class ExtractionError(Exception):
-    """Extraction can't start: missing settings, unsupported options, unreadable file."""
+    """Extraction can't start: missing settings or unsupported options."""
 
 
 class Extractor:
@@ -68,13 +64,8 @@ class Extractor:
         return self._backend
 
     def parse(self, path: str | Path) -> ParsedDocument:
-        path = Path(path)
-        if not self.parser.supports(path):
-            raise ExtractionError(f"{path}: not supported by the {self.parser.name} parser")
-        try:
-            return self.parser.parse(path)
-        except Exception as exc:
-            raise ExtractionError(f"{path}: can't parse: {type(exc).__name__}: {exc}") from exc
+        """Parse a document; raises `citefield.parsers.ParseError` if it can't."""
+        return parse_document(path, self.parser)
 
     def plan(self, document: ParsedDocument) -> Plan:
         settings = self.config.settings
@@ -86,6 +77,7 @@ class Extractor:
             self.backend,
             chunking=settings.chunking,
             batch_size=settings.extraction.field_batch_size,
+            n_runs=settings.extraction.n_runs,
         )
 
     def extract(self, path: str | Path, *, document_id: str | None = None) -> ExtractionResult:
@@ -94,7 +86,6 @@ class Extractor:
         plan = self.plan(document)
         settings = self.config.settings
         pages = {u.locator.page: u.text for u in document.units if u.locator.page is not None}
-        text = extract_v1.render_units(document.units)
         warnings = _document_warnings(document, self.config.fields)
 
         tokens = TokenUsage()
@@ -102,41 +93,28 @@ class Extractor:
         drafts: dict[str, list[Draft]] = {f.name: [] for f in self.config.fields}
         errors: dict[str, str] = {}
         for batch in plan.batches:
-            messages = extract_v1.build_messages(batch, text)
-            response, attempts, error = None, 0, None
-            for _ in range(settings.llm.max_retries + 1):
-                attempts += 1
-                try:
-                    completion = self.backend.complete_structured(
-                        messages, extract_v1.ExtractResponse
-                    )
-                except ValidationError as exc:
-                    error = f"invalid response after {attempts} attempt(s): {exc}"
-                    continue
-                except Exception as exc:  # API errors; the backend already retried them
-                    error = f"{type(exc).__name__}: {exc}"
-                    break
-                tokens.input += completion.input_tokens or 0
-                tokens.output += completion.output_tokens or 0
-                response = completion.parsed
-                break
+            completion, attempts, error = self._complete(batch.messages)
             calls += attempts
-            if response is None:
-                for field in batch:
-                    errors[field.name] = (error or "no response")[:1000]
+            if completion is None:
+                errors.update((f.name, error[:1000]) for f in batch.fields)
                 continue
+            tokens.input += completion.input_tokens or 0
+            tokens.output += completion.output_tokens or 0
 
-            by_name = {f.name: f for f in batch}
-            for answer in response.fields:
+            by_name = {f.name: f for f in batch.fields}
+            for answer in completion.parsed.fields:
                 field = by_name.get(answer.name)
                 if field is None:
                     warnings.append(OutputWarning(code="unexpected_field", raw=answer.name))
                     continue
                 for candidate in answer.candidates:
-                    draft = _draft(field, candidate, pages, settings, warnings)
+                    draft = _draft(
+                        field, candidate, pages, settings.verification.page_window, warnings
+                    )
                     if draft is not None:
                         drafts[field.name].append(draft)
 
+        min_ratio = settings.verification.fuzzy_min_ratio
         fields = []
         for field in self.config.fields:
             if field.name in errors:
@@ -145,7 +123,6 @@ class Extractor:
                 )
                 continue
             values = merge(field.name, drafts[field.name])
-            min_ratio = settings.verification.fuzzy_min_ratio
             for value in values:
                 if value.signals.evidence_match < min_ratio:
                     warnings.append(
@@ -171,7 +148,7 @@ class Extractor:
             run=RunInfo(
                 run_id=uuid.uuid4().hex,
                 started_at=started_at,
-                model=settings.llm.model or getattr(self.backend, "name", "unknown"),
+                model=settings.llm.model or self.backend.name,
                 prompt_version=extract_v1.VERSION,
                 schema_hash=self.config.schema_hash(),
                 settings_hash=self.config.settings_hash(),
@@ -188,14 +165,32 @@ class Extractor:
         """Re-run extraction and carry reviews over from a previous output."""
         raise NotImplementedError
 
+    def _complete(self, messages: list[Message]) -> tuple[Completion | None, int, str]:
+        """Call the backend, retrying invalid responses up to `max_retries` times.
+
+        Returns the completion (None on failure), the number of attempts and the last error.
+        """
+        retries = self.config.settings.llm.max_retries
+        error = "no response"
+        for attempt in range(1, retries + 2):
+            try:
+                completion = self.backend.complete_structured(messages, extract_v1.ExtractResponse)
+            except ValidationError as exc:
+                error = f"invalid response after {attempt} attempt(s): {exc}"
+            except Exception as exc:  # API errors; the backend already retried them
+                return None, attempt, f"{type(exc).__name__}: {exc}"
+            else:
+                return completion, attempt, ""
+        return None, retries + 1, error
+
 
 def _document_warnings(document: ParsedDocument, fields: list[FieldDef]) -> list[OutputWarning]:
     warnings = []
-    low = [u.locator.page for u in document.units if u.low_text and u.locator.page is not None]
+    low = [u.locator.page for u in document.low_text_units if u.locator.page is not None]
     if low:
         warnings.append(OutputWarning(code="low_text_units", units=low))
     for field in fields:
-        if field.type not in SUPPORTED_TYPES:
+        if field.type not in PARSED_TYPES:
             warnings.append(
                 OutputWarning(
                     code="unsupported_field_type",
@@ -210,7 +205,7 @@ def _draft(
     field: FieldDef,
     candidate: extract_v1.Candidate,
     pages: dict[int, str],
-    settings: Settings,
+    page_window: int,
     warnings: list[OutputWarning],
 ) -> Draft | None:
     """Turn one LLM candidate into a verified draft, or None if it has no usable evidence."""
@@ -223,33 +218,15 @@ def _draft(
     if not raw_value or not evidence:
         return None  # a candidate without evidence is not a value (ADR-0003)
 
-    value = None
-    if field.type == "string":
-        value = raw_value
-    elif field.type == "enum":
-        allowed = {v.casefold(): v for v in field.values or []}
-        value = allowed.get(raw_value.casefold())
-        if value is None:
-            warnings.append(
-                OutputWarning(code="enum_value_unknown", field=field.name, raw=raw_value)
-            )
-
-    verification = settings.verification
-    matches = [
-        evidence_match(
-            e.quote,
-            e.page,
-            pages,
-            page_window=verification.page_window,
-        )
-        for e in evidence
-    ]
+    value, warning = parse_value(field, raw_value)
+    if warning is not None:
+        warnings.append(warning)
     return Draft(
         raw_value=raw_value,
         raw_unit=(candidate.raw_unit or "").strip() or None,
         value=value,
         context=(candidate.context or "").strip() or None,
         evidence=evidence,
-        matches=matches,
+        matches=[evidence_match(e.quote, e.page, pages, page_window=page_window) for e in evidence],
         model_confidence=min(max(candidate.model_confidence, 0.0), 1.0),
     )

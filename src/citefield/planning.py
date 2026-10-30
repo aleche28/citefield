@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from citefield.config import ChunkingSettings, FieldDef
-from citefield.llm.base import LLMBackend
+from citefield.llm.base import LLMBackend, Message
 from citefield.parsers.base import ParsedDocument
 from citefield.prompts import extract_v1
 
@@ -19,13 +19,25 @@ class DocumentTooLarge(Exception):
 
 
 @dataclass
+class Batch:
+    """One extraction call: its fields and the exact messages that were budgeted."""
+
+    fields: list[FieldDef]
+    messages: list[Message]
+    prompt_tokens: int
+
+
+@dataclass
 class Plan:
     chunks: int
-    batches: list[list[FieldDef]]
+    batches: list[Batch]
     document_tokens: int
-    max_prompt_tokens: int  # largest prompt of any call
     input_budget: int
     n_runs: int = 1
+
+    @property
+    def max_prompt_tokens(self) -> int:
+        return max((b.prompt_tokens for b in self.batches), default=0)
 
     @property
     def calls(self) -> int:
@@ -55,16 +67,15 @@ def make_plan(
 ) -> Plan:
     """Plan the extraction calls. The whole document goes in one chunk for now."""
     text = extract_v1.render_units(document.units)
-    batches = batch_fields(fields, batch_size)
-    prompt_tokens = [
-        backend.count_tokens("\n\n".join(m.content for m in extract_v1.build_messages(b, text)))
-        for b in batches
-    ]
+    batches = []
+    for batch in batch_fields(fields, batch_size):
+        messages = extract_v1.build_messages(batch, text)
+        tokens = backend.count_tokens("\n\n".join(m.content for m in messages))
+        batches.append(Batch(fields=batch, messages=messages, prompt_tokens=tokens))
     plan = Plan(
         chunks=1,
         batches=batches,
         document_tokens=backend.count_tokens(text),
-        max_prompt_tokens=max(prompt_tokens, default=0),
         input_budget=input_budget(chunking, backend.context_window),
         n_runs=n_runs,
     )

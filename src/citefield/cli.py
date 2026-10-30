@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter
 from pathlib import Path
 
 import yaml
@@ -59,12 +60,15 @@ def main(argv: list[str] | None = None) -> int:
     if command is None:
         print(f"citefield {args.command}: not implemented yet", file=sys.stderr)
         return 2
-    return command(args)
+    try:
+        return command(args)
+    except _CliError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
 
-def _error(message: str) -> int:
-    print(f"error: {message}", file=sys.stderr)
-    return 1
+class _CliError(Exception):
+    """A problem to report on stderr, exiting with status 1."""
 
 
 def _load_config(path: str):
@@ -80,64 +84,48 @@ def _load_config(path: str):
         raise _CliError(f"{path}: invalid config\n{exc}") from exc
 
 
-class _CliError(Exception):
-    pass
-
-
 def _validate_config(args: argparse.Namespace) -> int:
-    try:
-        config = _load_config(args.config)
-    except _CliError as exc:
-        return _error(str(exc))
+    config = _load_config(args.config)
     print(f"{args.config}: OK, {len(config.fields)} fields")
     return 0
 
 
 def _inspect(args: argparse.Namespace) -> int:
-    from citefield.parsers import get_parser
+    from citefield.parsers import ParseError, get_parser, parse_document
 
-    path = Path(args.path)
     try:
-        parser = get_parser(args.parser or "pdfplumber")
-    except ValueError as exc:
-        return _error(str(exc))
-    if not path.is_file():
-        return _error(f"{path}: no such file")
-    if not parser.supports(path):
-        return _error(f"{path}: not supported by the {parser.name} parser")
-    document = parser.parse(path)
+        document = parse_document(args.path, get_parser(args.parser or "pdfplumber"))
+    except (ValueError, ParseError) as exc:
+        raise _CliError(str(exc)) from exc
     for unit in document.units:
         label = f"page {unit.locator.page}" if unit.locator.page else unit.id
         flag = " · low text" if unit.low_text else ""
         print(f"[[{label}{flag}]]")
         print(unit.text.rstrip())
         print()
-    low = [u.locator.page or u.id for u in document.units if u.low_text]
+    low = [u.locator.page or u.id for u in document.low_text_units]
     print(
-        f"--- {path.name}: {len(document.units)} units, parser {document.parser.name} "
-        f"{document.parser.version}, {len(low)} low-text: {low}"
+        f"--- {Path(args.path).name}: {len(document.units)} units, parser "
+        f"{document.parser.name} {document.parser.version}, {len(low)} low-text: {low}"
     )
     return 0
 
 
 def _extract(args: argparse.Namespace) -> int:
     from citefield.extraction import ExtractionError, Extractor
+    from citefield.parsers import ParseError
     from citefield.planning import DocumentTooLarge
 
-    try:
-        config = _load_config(args.config)
-    except _CliError as exc:
-        return _error(str(exc))
-    extractor = Extractor(config)
+    extractor = Extractor(_load_config(args.config))
     root = Path(args.path)
     if root.is_dir():
         files = sorted(p for p in root.iterdir() if p.is_file() and extractor.parser.supports(p))
     elif root.is_file():
         files = [root]
     else:
-        return _error(f"{root}: no such file or directory")
+        raise _CliError(f"{root}: no such file or directory")
     if not files:
-        return _error(f"{root}: no supported documents")
+        raise _CliError(f"{root}: no supported documents")
 
     out = Path(args.output)
     failures = 0
@@ -153,16 +141,14 @@ def _extract(args: argparse.Namespace) -> int:
                 )
                 continue
             result = extractor.extract(path)
-        except (ExtractionError, DocumentTooLarge) as exc:
+        except (ExtractionError, ParseError, DocumentTooLarge) as exc:
             failures += 1
             print(f"error: {exc}", file=sys.stderr)
             continue
         out.mkdir(parents=True, exist_ok=True)
         target = out / f"{result.document.document_id}.json"
         result.to_json(target)
-        counts: dict[str, int] = {}
-        for field in result.fields:
-            counts[field.status] = counts.get(field.status, 0) + 1
+        counts = Counter(f.status for f in result.fields)
         summary = ", ".join(f"{n} {status}" for status, n in sorted(counts.items()))
         print(
             f"{path} -> {target}: {summary}; {result.run.llm_calls} call(s), "

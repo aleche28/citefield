@@ -39,6 +39,10 @@ class ParsedDocument(BaseModel):
     parser: ParserInfo
     units: list[Unit]  # pages for PDF, heading sections for Markdown
 
+    @property
+    def low_text_units(self) -> list[Unit]:
+        return [u for u in self.units if u.low_text]
+
 
 class DocumentParser(Protocol):
     name: str

@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel
 
-from citefield.config import FieldDef
+from citefield.config import FieldDef, stable_hash
 from citefield.parsers.base import ParserInfo
 
 OUTPUT_SCHEMA_VERSION = 1
@@ -142,9 +140,14 @@ def normalize_text(text: str) -> str:
     return " ".join(text.casefold().split())
 
 
-def make_value_id(field: str, value: ScalarValue, context: str | None) -> str:
+def value_key(value: ScalarValue, raw_value: str) -> ScalarValue:
+    """What makes two values the same: the parsed value, or the raw text when there is none,
+    normalized."""
+    key = value if value is not None else raw_value
+    return normalize_text(key) if isinstance(key, str) else key
+
+
+def make_value_id(field: str, value: ScalarValue, raw_value: str, context: str | None) -> str:
     """Stable id from field name, normalized value and normalized context."""
-    norm_value = normalize_text(value) if isinstance(value, str) else value
     norm_context = normalize_text(context) if context else None
-    payload = json.dumps([field, norm_value, norm_context], ensure_ascii=False)
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+    return stable_hash([field, value_key(value, raw_value), norm_context])[:16]

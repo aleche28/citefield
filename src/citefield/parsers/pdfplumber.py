@@ -26,6 +26,7 @@ class PdfplumberParser:
         with pdfplumber.open(path) as pdf:
             for number, page in enumerate(pdf.pages, start=1):
                 text = page.extract_text() or ""
+                page.close()  # free the page's layout objects; they add up on long manuals
                 units.append(
                     Unit(
                         id=f"p{number}",
@@ -34,9 +35,11 @@ class PdfplumberParser:
                         low_text=len("".join(text.split())) < LOW_TEXT_MIN_CHARS,
                     )
                 )
+        with path.open("rb") as f:
+            sha256 = hashlib.file_digest(f, "sha256").hexdigest()
         return ParsedDocument(
             path=str(path),
-            sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            sha256=sha256,
             parser=ParserInfo(name=self.name, version=pdfplumber.__version__),
             units=units,
         )
