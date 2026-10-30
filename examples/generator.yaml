@@ -1,0 +1,35 @@
+# Fields for the generator operator's manual in corpus/ (TM 9-6115-642-10).
+# Run: citefield extract corpus/manuals/tm-9-6115-642-10.pdf -c examples/generator.yaml -o out/
+schema_version: 1
+
+fields:
+  - name: machine_category
+    description: Type of machine described by the manual.
+    type: enum
+    values: [generator, compressor, pump, 3d_printer, other]
+
+  - name: model_designation
+    description: Model designation of the machine (not the engine), one per variant.
+    aliases: [model number, DoD model]
+
+  - name: engine_manufacturer
+    description: Manufacturer of the engine.
+
+  - name: engine_model
+    description: Model of the engine.
+
+  - name: engine_type
+    description: Engine type as described in the equipment data (aspiration, cylinders, cycle, fuel).
+
+  - name: firing_order
+    description: Engine cylinder firing order.
+
+  - name: cooling_system_type
+    description: Type of engine cooling system.
+
+  - name: refrigerant_type
+    description: Refrigerant used by the machine's air-conditioning or refrigeration circuit.
+
+settings:
+  llm:
+    model: openrouter/google/gemini-3.1-flash-lite

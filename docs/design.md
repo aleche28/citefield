@@ -96,7 +96,9 @@ class Table(BaseModel):
     rows: list[list[str]]
 ```
 
-Tables reach the LLM as Markdown tables tagged with their id and page, so evidence can cite a table cell. Low-text units are listed in the output warnings, so the reviewer knows what was skipped.
+Tables reach the LLM as Markdown tables tagged with their id and page, so evidence can cite a table cell. A unit with fewer than 200 non-whitespace characters is low-text: blank, scanned, or mostly visual such as figures, decals and chapter dividers. Low-text units are listed in the output warnings, so the reviewer knows what was skipped.
+
+Pages are numbered by their 1-based position in the PDF, not by the label printed on them: in a manual whose page 28 is printed as "0002-6", evidence cites page 28.
 
 ## Configuration
 
@@ -134,7 +136,7 @@ settings:
   parser: pdfplumber
   llm:
     model: provider/model-name
-    temperature: 0
+    temperature: 0 # null: not sent, for models that don't accept it
     max_retries: 2
   chunking:
     max_input_tokens: auto # auto = model context window minus prompt and output reserve
@@ -147,11 +149,11 @@ settings:
     enabled: true
     max_per_document: 10 # N
   verification:
-    fuzzy_min_ratio: 0.85
+    fuzzy_min_ratio: 0.85 # below it, a value gets an evidence_not_verified warning
     page_window: 1 # also search pages ±1 for the quote
 ```
 
-**Validation rules.** Field names are unique snake_case. Enum fields need `values`. Every `unit` must resolve in the pint registry, including custom `units`. The config is validated with pydantic before any LLM call (`citefield validate-config`).
+**Validation rules.** Field names are unique snake_case. Enum fields need `values`, and only enum fields may have them. Only number and integer fields may have a `unit`, and every `unit` must resolve in the pint registry, including custom `units`. The config is validated with pydantic before any LLM call (`citefield validate-config`).
 
 **Hashes.** The output records a `schema_hash` over the normalized `fields` and `units`, and a `settings_hash` over settings that change results (parser, model, chunking, extraction). Re-extraction and evaluation use them to tell what changed.
 
@@ -159,18 +161,18 @@ settings:
 
 A run makes `chunks × field batches × n_runs` extraction calls, plus one proposal call per chunk. With a document that fits the context window, 30 fields and default settings, that is 2 calls.
 
-**1. Plan.** Count the document's tokens. If it fits under `max_input_tokens`, it goes in one chunk; otherwise it is split at unit boundaries (pages) with `overlap_units` of overlap, so tables are not cut in half. Fields are split into batches of `field_batch_size` (B ≤ N). `citefield extract --dry-run` prints the plan and a token estimate without calling the LLM.
+**1. Plan.** Count the document's tokens. `max_input_tokens: auto` is the model's context window minus 8,192 tokens kept for the answer; when the backend doesn't know the context window, it assumes 128k. If the prompt fits, the document goes in one chunk; otherwise it is split at unit boundaries (pages) with `overlap_units` of overlap, so tables are not cut in half. Fields are split into batches of `field_batch_size` (B ≤ N). `citefield extract --dry-run` prints the plan and a token estimate without calling the LLM.
 
 **2. Prompt.** Each call carries the rules, the batch's field definitions and the chunk text with explicit markers (`[[page 12]]`, `[[table t3 · page 12]]`). The rules: cite evidence for every value, copy the raw value and unit verbatim, never use outside knowledge, return nothing for a field that is not in the text. Prompt templates are versioned and the version is recorded in the output.
 
-**3. Structured response.** The model answers through the backend's JSON-schema or tool-call mode; pydantic validates it. Invalid output is retried up to `max_retries`; a batch that still fails marks its fields `error` with the message, and the other batches are unaffected. Per field, the model returns a list of candidates:
+**3. Structured response.** The model answers through the backend's JSON-schema or tool-call mode; pydantic validates it. Invalid output is retried up to `max_retries`; a batch that still fails marks its fields `error` with the message in the field's `error`, and the other batches are unaffected. API errors are retried by the backend, not again by the core. Per field, the model returns a list of candidates:
 
 - `raw_value` and `raw_unit`, verbatim
 - `context`: what the value applies to (model, format, condition), if stated
 - `evidence`: a quote with its page, or a table cell as table id + row label + column label + cell text
 - `model_confidence`: the model's own 0–1 estimate
 
-**4. Post-process in code.** Verify evidence (see signals). Parse numbers with `number_locale`; an ambiguous form such as "24.000" with `auto` gets a warning rather than a silent choice. Convert units with pint: a converted value gets status `derived` and a human-readable `derivation`, an unconverted one `found`. A value without a unit for a field that has one keeps `value: null` and `unit_resolved: false`; the unit is never assumed.
+**4. Post-process in code.** A candidate without evidence is dropped. Every other candidate is kept and its evidence verified (see signals), so a value whose quote can't be found stays visible to the reviewer, with its low `evidence_match` and an `evidence_not_verified` warning when the best match is below `fuzzy_min_ratio`. An enum value is matched to the allowed `values` case-insensitively; a value outside them keeps `value: null` and gets an `enum_value_unknown` warning. Parse numbers with `number_locale`; an ambiguous form such as "24.000" with `auto` gets a warning rather than a silent choice. Convert units with pint: a converted value gets status `derived` and a human-readable `derivation`, an unconverted one `found`. A value without a unit for a field that has one keeps `value: null` and `unit_resolved: false`; the unit is never assumed.
 
 **5. Merge across chunks and runs.** Candidates are grouped by normalized value and normalized context.
 
@@ -188,7 +190,7 @@ Each value carries a set of named signals and no aggregate score or band: client
 
 | Signal             | Type and range | Null when                    | What it measures                                                                                                                                                                                                       |
 | ------------------ | -------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `evidence_match`   | float 0–1      | never (0 if nothing matched) | Best match of the cited evidence against the cited page ±`page_window`, after normalizing whitespace, hyphenation and ligatures. For table evidence: share of row label, column label and cell text found on the page. |
+| `evidence_match`   | float 0–1      | never (0 if nothing matched) | Best match of the cited evidence against the cited page ±`page_window`, after folding case, ligatures, quotes and dashes and removing whitespace and hyphenation. Reported as is, without a threshold. For table evidence: share of row label, column label and cell text found on the page. |
 | `citation_count`   | integer ≥ 1    | never                        | Independent citations (distinct pages or tables) that support the same value after merging.                                                                                                                            |
 | `run_agreement`    | float 0–1      | `n_runs` = 1                 | Share of runs that produced this value.                                                                                                                                                                                |
 | `model_confidence` | float 0–1      | backend gives none           | The model's own estimate. Uncalibrated; documented as such.                                                                                                                                                            |
@@ -198,7 +200,7 @@ Whether a value is stated or converted is not a signal: it is the value's `statu
 
 **Contract.** Signal names and semantics are part of the public API. Adding a signal is a minor version; renaming, removing or changing a range is a major version. The output's `output_schema_version` lets clients check what they read.
 
-Decision record: [ADR-0006](adr/0006-named-confidence-signals-without-aggregate-score.md).
+Decision records: [ADR-0006](adr/0006-named-confidence-signals-without-aggregate-score.md) (named signals), [ADR-0013](adr/0013-report-evidence-match-as-the-raw-best-score.md) (`evidence_match` without a threshold).
 
 **Known limit.** `evidence_match` depends heavily on the parser's text quality. It is best-effort in v1, and the evaluation can compare parsers on the same documents.
 
@@ -346,8 +348,16 @@ class LLMBackend(Protocol):
     context_window: int
     def count_tokens(self, text: str) -> int: ...
     def complete_structured(self, messages: list[Message],
-                            schema: type[BaseModel]) -> BaseModel: ...
+                            schema: type[BaseModel]) -> Completion: ...
+
+@dataclass
+class Completion:
+    parsed: BaseModel             # validated against schema
+    input_tokens: int | None      # as reported by the provider
+    output_tokens: int | None
 ```
+
+`complete_structured` raises `pydantic.ValidationError` when the response doesn't match the schema, so the core can retry. The LiteLLM adapter leaves out `temperature` when it is null, and on OpenRouter it routes only to providers that support every parameter it sends, so a structured-output request never reaches a provider that ignores the schema. Decision record: [ADR-0012](adr/0012-llm-backends-return-token-usage.md).
 
 | Command                                                  | What it does                                                                           |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------- |

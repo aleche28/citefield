@@ -1,0 +1,40 @@
+# Fields for the 3D printer user guide in corpus/ (LulzBot TAZ SideKick).
+# Run: citefield extract corpus/manuals/lulzbot-taz-sidekick-user-guide-v1.2.pdf -c examples/3d-printer.yaml -o out/
+schema_version: 1
+
+fields:
+  - name: machine_category
+    description: Type of machine described by the manual.
+    type: enum
+    values: [generator, compressor, pump, 3d_printer, other]
+
+  - name: model_designation
+    description: Model designation of the machine, one per variant.
+
+  - name: build_volume
+    description: Maximum build volume (X x Y x Z) as stated, one per model.
+
+  - name: net_weight
+    description: Net weight of the printer as stated, one per model.
+
+  - name: bed_leveling
+    description: Bed leveling system.
+
+  - name: filament_diameter
+    description: Supported filament diameter(s).
+
+  - name: motion_system
+    description: How the axes are driven.
+
+  - name: ambient_operating_temperature
+    description: Allowed ambient operating temperature range.
+
+  - name: power_supply_voltage_selection
+    description: How the AC line voltage of the printer power supply is selected.
+
+  - name: refrigerant_type
+    description: Refrigerant used by the machine's air-conditioning or refrigeration circuit.
+
+settings:
+  llm:
+    model: openrouter/google/gemini-3.1-flash-lite
