@@ -17,7 +17,7 @@ Write one when the choice is hard to reverse, changes a public contract, changes
 2. Copy `docs/adr/template.md` to `docs/adr/NNNN-kebab-title.md`. The title states the decision ("Use X for Y"), not the topic ("Parsers").
 3. Fill it in and delete the template comment:
    - `Status: Proposed` while it is under discussion; `Accepted` once the user has agreed to it. Ask if unclear; don't mark a decision Accepted on your own.
-   - `Date`: today, `YYYY-MM-DD`.
+   - `Date`: the day the decision was made, `YYYY-MM-DD`: today for a new ADR, and updated once when a Proposed ADR is accepted. It never changes after that.
    - **Context**: the problem and constraints, with a link to the relevant `design.md` section.
    - **Considered options**: the real alternatives with their trade-offs. Don't pad it with straw men. If no alternatives were weighed, say so.
    - **Decision**: "We will …", naming the chosen option.

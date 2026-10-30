@@ -11,8 +11,7 @@ Human review is the expensive part of the workflow. Re-running extraction (new c
 
 ## Considered options
 
-- **Review fields in the per-document output JSON, carried over with `--previous`**: no extra storage; one file per document.
-- **Append-only event log for re-ingestion**, in the style of the workshop: keeps full history, but adds storage and tooling.
+Not recorded; backfilled from design.md v1.0.0. design.md lists an append-only event log for re-ingestion, in the style of the workshop, as a later option (see [Scope](../design.md#scope)).
 
 ## Decision
 

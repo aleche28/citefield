@@ -16,9 +16,8 @@ citefield is an open-source library meant to be embedded in other projects, incl
 
 ## Decision
 
-We will license citefield under Apache 2.0, because it adds an explicit patent grant over MIT. Every core dependency is permissive; copyleft dependencies are allowed only as opt-in extras (see [ADR-0004](0004-pdfplumber-as-default-parser-with-optional-extras.md)).
+We will license citefield under Apache 2.0, because it adds an explicit patent grant over MIT. Every core dependency is permissive; the only copyleft parser, PyMuPDF, is an opt-in extra (see [ADR-0004](0004-pdfplumber-as-default-parser-with-optional-extras.md)).
 
 ## Consequences
 
-- Adding a core dependency requires checking its license; the dependency table in `design.md` records each one.
-- A copyleft dependency in the core install would be a new decision and needs its own ADR.
+- The dependency table in `design.md` records each dependency's license.

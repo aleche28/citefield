@@ -6,7 +6,8 @@
 <!--
 Metadata lines, parsed by scripts/check_docs.py:
 - Status: Proposed | Accepted | Rejected | Deprecated | Superseded
-- Date: the day the status last changed (YYYY-MM-DD)
+- Date: the day the decision was made (YYYY-MM-DD); unchanged when it is later
+  superseded or deprecated
 - Supersedes: ADR-NNNN        (optional; only on the new ADR)
 - Superseded by: ADR-NNNN     (required when Status is Superseded)
 

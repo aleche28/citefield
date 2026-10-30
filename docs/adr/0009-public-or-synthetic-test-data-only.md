@@ -19,5 +19,5 @@ The repository contains only public or synthetic manuals. No proprietary documen
 
 ## Consequences
 
-- Fixtures and evaluation sets need a recorded source and license, or must be generated.
+- Fixtures and evaluation sets must come from public manuals or be synthetic.
 - Evaluation on proprietary manuals happens outside the repository.
