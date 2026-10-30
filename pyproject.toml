@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "citefield"
+version = "0.0.1"
+description = "Extract metadata from technical manuals, with a verifiable citation for every value."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Alessio Chessa", email = "ale.chessa28@gmail.com" }]
+requires-python = ">=3.11"
+classifiers = [
+  "Development Status :: 1 - Planning",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Topic :: Text Processing :: General",
+]
+dependencies = [
+  "pdfplumber",
+  "pydantic>=2",
+  "pint",
+  "litellm",
+  "pyyaml",
+]
+
+[project.optional-dependencies]
+docling = ["docling"]
+pypdf = ["pypdf"]
+# AGPL-3.0: installing this extra puts AGPL obligations on that setup.
+pymupdf = ["pymupdf"]
+
+[project.urls]
+Repository = "https://github.com/aleche28/citefield"
+
+[project.scripts]
+citefield = "citefield.cli:main"
+
+[project.entry-points."citefield.parsers"]
+pdfplumber = "citefield.parsers.pdfplumber:PdfplumberParser"
+markdown = "citefield.parsers.markdown:MarkdownParser"
+
+[project.entry-points."citefield.llm_backends"]
+litellm = "citefield.llm.litellm:LiteLLMBackend"
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
