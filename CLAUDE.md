@@ -4,7 +4,7 @@ Python library and CLI that extracts metadata from technical manuals, with a ver
 
 ## Commands
 
-- `uv run python -m pytest`: tests, including the docs check
+- `uv run pytest`: tests, including the docs check
 - `uv run ruff check` and `uv run ruff format`: lint and format
 - `uv run python scripts/check_docs.py [--write]`: check docs; `--write` regenerates the ADR index
 

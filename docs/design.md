@@ -33,7 +33,19 @@ Decision record: [ADR-0003](adr/0003-require-evidence-for-every-value-verified-i
 
 A run is a straight pipeline: parse the document, plan the calls, let the LLM propose, then verify, merge and add proposals in code. The parser and the LLM backend are the two plug-in points; the module layout is under Public API and CLI.
 
-&#91;embedded content: citefield pipeline · config to golden set, review outside the core\]
+```mermaid
+flowchart LR
+    config[/"fields.yaml"/] --> plan
+    manual[/"manual: PDF or Markdown"/] --> parse["Parse<br/>parser plugin"]
+    parse --> plan["Plan<br/>chunks × field batches"]
+    plan --> propose["LLM proposes<br/>LLM backend plugin"]
+    propose --> verify["Verify evidence,<br/>parse numbers, convert units"]
+    verify --> merge["Merge across<br/>chunks and runs"]
+    merge --> proposals["Add proposals"]
+    proposals --> output[/"output JSON"/]
+    output -.-> review["Human review<br/>outside the core in v1"]
+    review -.-> golden[("golden set")]
+```
 
 Only one stage calls the LLM for extraction; everything after it is deterministic code, and the dashed review step happens outside the core in v1.
 
