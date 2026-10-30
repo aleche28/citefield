@@ -25,4 +25,6 @@ ADRs 0002–0010 were backfilled from design.md v1.0.0 when this log started.
 | [0009](0009-public-or-synthetic-test-data-only.md) | Use only public or synthetic manuals as test data | Superseded | 2026-10-30 |
 | [0010](0010-reuse-workshop-ideas-not-code.md) | Reuse the workshop's ideas, not its code | Accepted | 2026-10-30 |
 | [0011](0011-use-only-redistributable-manuals-as-test-data.md) | Use only redistributable or synthetic manuals as test data, committed in the repository | Accepted | 2026-10-30 |
+| [0012](0012-llm-backends-return-token-usage.md) | LLM backends return token usage with each structured response | Accepted | 2026-10-30 |
+| [0013](0013-report-evidence-match-as-the-raw-best-score.md) | Report evidence_match as the raw best score, and flag weak evidence with a warning | Accepted | 2026-10-30 |
 <!-- adr-index:end -->

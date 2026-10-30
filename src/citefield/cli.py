@@ -4,6 +4,11 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter
+from pathlib import Path
+
+import yaml
+from pydantic import ValidationError
 
 from citefield import __version__
 
@@ -46,8 +51,110 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    print(f"citefield {args.command}: not implemented yet", file=sys.stderr)
-    return 2
+    commands = {
+        "validate-config": _validate_config,
+        "inspect": _inspect,
+        "extract": _extract,
+    }
+    command = commands.get(args.command)
+    if command is None:
+        print(f"citefield {args.command}: not implemented yet", file=sys.stderr)
+        return 2
+    try:
+        return command(args)
+    except _CliError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+class _CliError(Exception):
+    """A problem to report on stderr, exiting with status 1."""
+
+
+def _load_config(path: str):
+    from citefield.config import load_config
+
+    try:
+        return load_config(path)
+    except OSError as exc:
+        raise _CliError(f"can't read config: {exc}") from exc
+    except yaml.YAMLError as exc:
+        raise _CliError(f"{path}: invalid YAML: {exc}") from exc
+    except ValidationError as exc:
+        raise _CliError(f"{path}: invalid config\n{exc}") from exc
+
+
+def _validate_config(args: argparse.Namespace) -> int:
+    config = _load_config(args.config)
+    print(f"{args.config}: OK, {len(config.fields)} fields")
+    return 0
+
+
+def _inspect(args: argparse.Namespace) -> int:
+    from citefield.parsers import ParseError, get_parser, parse_document
+
+    try:
+        document = parse_document(args.path, get_parser(args.parser or "pdfplumber"))
+    except (ValueError, ParseError) as exc:
+        raise _CliError(str(exc)) from exc
+    for unit in document.units:
+        label = f"page {unit.locator.page}" if unit.locator.page else unit.id
+        flag = " · low text" if unit.low_text else ""
+        print(f"[[{label}{flag}]]")
+        print(unit.text.rstrip())
+        print()
+    low = [u.locator.page or u.id for u in document.low_text_units]
+    print(
+        f"--- {Path(args.path).name}: {len(document.units)} units, parser "
+        f"{document.parser.name} {document.parser.version}, {len(low)} low-text: {low}"
+    )
+    return 0
+
+
+def _extract(args: argparse.Namespace) -> int:
+    from citefield.extraction import ExtractionError, Extractor
+    from citefield.parsers import ParseError
+    from citefield.planning import DocumentTooLarge
+
+    extractor = Extractor(_load_config(args.config))
+    root = Path(args.path)
+    if root.is_dir():
+        files = sorted(p for p in root.iterdir() if p.is_file() and extractor.parser.supports(p))
+    elif root.is_file():
+        files = [root]
+    else:
+        raise _CliError(f"{root}: no such file or directory")
+    if not files:
+        raise _CliError(f"{root}: no supported documents")
+
+    out = Path(args.output)
+    failures = 0
+    for path in files:
+        try:
+            if args.dry_run:
+                plan = extractor.plan(extractor.parse(path))
+                print(
+                    f"{path}: {plan.chunks} chunk(s) × {len(plan.batches)} field batch(es) × "
+                    f"{plan.n_runs} run(s) = {plan.calls} call(s); document "
+                    f"{plan.document_tokens} tokens, largest prompt {plan.max_prompt_tokens} "
+                    f"of {plan.input_budget} budget"
+                )
+                continue
+            result = extractor.extract(path)
+        except (ExtractionError, ParseError, DocumentTooLarge) as exc:
+            failures += 1
+            print(f"error: {exc}", file=sys.stderr)
+            continue
+        out.mkdir(parents=True, exist_ok=True)
+        target = out / f"{result.document.document_id}.json"
+        result.to_json(target)
+        counts = Counter(f.status for f in result.fields)
+        summary = ", ".join(f"{n} {status}" for status, n in sorted(counts.items()))
+        print(
+            f"{path} -> {target}: {summary}; {result.run.llm_calls} call(s), "
+            f"{result.run.tokens.input}+{result.run.tokens.output} tokens"
+        )
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":

@@ -15,5 +15,5 @@ def test_config_defaults():
     assert config.settings.extraction.field_batch_size == 30
 
 
-def test_cli_stub_exits_nonzero():
-    assert main(["validate-config", "fields.yaml"]) == 2
+def test_unimplemented_command_exits_2():
+    assert main(["eval", "out/", "-c", "fields.yaml"]) == 2
