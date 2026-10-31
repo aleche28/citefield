@@ -1,6 +1,7 @@
 # 0015. Score the evaluation by value, over fully reviewed fields only
 
-- Status: Accepted
+- Status: Superseded
+- Superseded by: ADR-0017
 - Date: 2026-10-31
 
 ## Context

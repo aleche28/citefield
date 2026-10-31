@@ -40,6 +40,7 @@ class Signals(BaseModel):
 class Review(BaseModel):
     status: ReviewStatus = "pending"
     reviewed_value: ScalarValue = None
+    equivalents: list[str] = []  # other forms of the same fact the evaluation also accepts
     reviewer: str | None = None
     reviewed_at: datetime | None = None
     note: str | None = None

@@ -53,6 +53,8 @@ def template(result: ExtractionResult) -> str:
             value_lines.append(f"        status: {v.review.status}")
             if v.review.reviewed_value is not None:
                 value_lines.append(f"        reviewed_value: {_quote(v.review.reviewed_value)}")
+            if v.review.equivalents:
+                value_lines.append(f"        also_accept: {_quote(v.review.equivalents)}")
         has_values = any(line.startswith("      - value_id") for line in value_lines)
         lines.append("    values:" if has_values else "    values: []")
         lines.extend(value_lines)

@@ -29,8 +29,8 @@ To review or extend a golden output (from the repository root):
 
 ```sh
 # set statuses in the YAML: accepted, edited (with reviewed_value) or rejected; add missed
-# values under `added` with a quote and page; set a field to confirmed_absent if the manual
-# doesn't state it
+# values under `added` with a quote and page; list other forms of the same fact under
+# `also_accept`; set a field to confirmed_absent if the manual doesn't state it
 uv run python scripts/review.py apply corpus/golden/generator/tm-9-6115-642-10.json \
   corpus/golden/generator/tm-9-6115-642-10.review.yaml \
   -o corpus/golden/generator/tm-9-6115-642-10.json

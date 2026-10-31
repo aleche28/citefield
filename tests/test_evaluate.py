@@ -75,6 +75,72 @@ def confirmed_absent(result, name):
             id="context differs: still a match, counted",
         ),
         pytest.param(
+            [value(F, "Genuine ANTCLABS BLTouch", "accepted")],
+            [value(F, "Genuine ANTCLABS BLTouch®")],
+            {"true_positives": 1, "false_positives": 0},
+            id="trademark sign folded",
+        ),
+        pytest.param(
+            [value(F, '9" x 9" x 9 1/4"', "accepted")],
+            [value(F, "9\u201d x 9\u201d x 9 1/4\u201d")],
+            {"true_positives": 1},
+            id="curly quotes straightened",
+        ),
+        pytest.param(
+            [value(F, "162 x 162 x 181 mm", "accepted")],
+            [value(F, "162 x162 x181mm")],
+            {"true_positives": 1},
+            id="whitespace removed",
+        ),
+        pytest.param(
+            [value(F, "1.75mm or 2.85mm", "accepted")],
+            [value(F, "1.75mm or 2.85mm*")],
+            {"true_positives": 1},
+            id="footnote asterisk removed",
+        ),
+        pytest.param(
+            [value(F, "18.92", "accepted", raw_unit="lb")],
+            [value(F, "18.92lb")],
+            {"true_positives": 1, "false_positives": 0},
+            id="raw unit appended",
+        ),
+        pytest.param(
+            [value(F, "18.92lb", "accepted", raw_unit="lb")],
+            [value(F, "18.92 lb")],
+            {"true_positives": 1},
+            id="raw unit not appended twice",
+        ),
+        pytest.param(
+            [value(F, "18.92", "accepted", raw_unit="lb")],
+            [value(F, "18.92")],
+            {"true_positives": 0, "false_positives": 1, "false_negatives": 1},
+            id="missing unit: no match",
+        ),
+        pytest.param(
+            [value(F, "5 C to 32 C", "accepted", equivalents=["5 C to 32 C (41 F to 113 F)"])],
+            [value(F, "5 C to 32 C (41 F to 113 F)")],
+            {"true_positives": 1, "false_positives": 0, "false_negatives": 0},
+            id="equivalent form",
+        ),
+        pytest.param(
+            [value(F, '6 3/8"', "accepted", equivalents=["162 mm"])],
+            [value(F, '6 3/8"'), value(F, "162 mm")],
+            {"true_positives": 1, "false_positives": 0, "false_negatives": 0},
+            id="two forms of one value count once",
+        ),
+        pytest.param(
+            [value(F, '6 3/4"', "edited", reviewed_value='6 3/8"', equivalents=["162 mm"])],
+            [value(F, "162 mm")],
+            {"true_positives": 1, "false_negatives": 0},
+            id="equivalent of an edited value",
+        ),
+        pytest.param(
+            [value(F, '6 3/8"', "accepted", equivalents=["162 mm"])],
+            [value(F, "163 mm")],
+            {"true_positives": 0, "false_positives": 1, "false_negatives": 1, "unjudged": 1},
+            id="equivalent not predicted: one miss",
+        ),
+        pytest.param(
             [value(F, "Onan", "accepted"), value(F, "Kubota")],
             [value(F, "Cummins")],
             {"documents": 0, "false_positives": 0, "false_negatives": 0},
@@ -116,6 +182,35 @@ def test_values_in_examples_are_left_out():
     predicted = output(**{F: [value(F, "Onan"), value(F, "Kubota")]})
     field = score([(golden, predicted)], config(examples=["kubota"])).fields[0]
     assert (field.true_positives, field.false_positives) == (1, 0)
+
+
+def test_examples_are_left_out_by_match_key():
+    golden = output(**{F: [value(F, "Kubota", "accepted")]})
+    predicted = output(**{F: [value(F, "Kubota®")]})
+    field = score([(golden, predicted)], config(examples=["kubota"])).fields[0]
+    assert (field.true_positives, field.false_positives) == (0, 0)
+
+
+@pytest.mark.parametrize(
+    ("golden", "message"),
+    [
+        (
+            [value(F, "Onan", "accepted", equivalents=["Kubota"]), value(F, "Kubota", "accepted")],
+            "matches two golden values",
+        ),
+        (
+            [value(F, "Onan", "accepted", equivalents=["Kubota"]), value(F, "Kubota", "rejected")],
+            "is also a negative",
+        ),
+        (
+            [value(F, "Onan Corp", "edited", reviewed_value="Onan", equivalents=["Onan Corp"])],
+            "is also a negative",
+        ),
+    ],
+)
+def test_equivalent_colliding_with_another_value_is_an_error(golden, message):
+    with pytest.raises(EvalError, match=message):
+        score([(output(**{F: golden}), output(**{F: []}))], config())
 
 
 def test_carried_over_values_count_once():

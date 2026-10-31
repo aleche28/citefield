@@ -109,6 +109,8 @@ def value(
     *,
     context: str | None = None,
     reviewed_value: str | None = None,
+    raw_unit: str | None = None,
+    equivalents: tuple[str, ...] = (),
     evidence_match: float = 1.0,
     confidence: float | None = 0.9,
 ) -> Value:
@@ -116,11 +118,12 @@ def value(
         value_id=make_value_id(field, raw_value, raw_value, context),
         status="found",
         raw_value=raw_value,
+        raw_unit=raw_unit,
         value=raw_value,
         context=context,
         evidence=[QuoteEvidence(page=1, quote=raw_value)],
         signals=Signals(
             evidence_match=evidence_match, citation_count=1, model_confidence=confidence
         ),
-        review=Review(status=review, reviewed_value=reviewed_value),
+        review=Review(status=review, reviewed_value=reviewed_value, equivalents=list(equivalents)),
     )
