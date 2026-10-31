@@ -141,6 +141,33 @@ def test_reviewed_value_goes_with_edited(decision):
         )
 
 
+def test_also_accept_is_stored_as_equivalents():
+    mid = vid("engine_manufacturer", "Onan")
+    added = {
+        "raw_value": "Kubota",
+        "also_accept": ["Kubota Corp"],
+        "evidence": [{"page": 1, "quote": "Kubota"}],
+    }
+    decisions = {
+        "fields": {
+            "engine_manufacturer": {
+                "values": [{"value_id": mid, "status": "accepted", "also_accept": ["Onan Corp"]}],
+                "added": [added],
+            }
+        }
+    }
+    values = apply_review(generator_output(), decisions).field("engine_manufacturer").values
+    assert [v.review.equivalents for v in values] == [["Onan Corp"], ["Kubota Corp"]]
+
+
+def test_also_accept_needs_a_positive_status():
+    decision = {"value_id": "x", "status": "rejected", "also_accept": ["y"]}
+    with pytest.raises(ValueError, match="also_accept"):
+        apply_review(
+            generator_output(), {"fields": {"engine_manufacturer": {"values": [decision]}}}
+        )
+
+
 def test_added_value_needs_evidence():
     with pytest.raises(ValueError, match="needs evidence"):
         apply_review(
@@ -174,6 +201,7 @@ def test_review_script_template_round_trips(tmp_path, capsys):
                             "value_id": vid("model_designation", "MEP-813", "400 Hz"),
                             "status": "edited",
                             "reviewed_value": "MEP-813A",
+                            "also_accept": ["MEP 813 A"],
                         }
                     ]
                 }
@@ -188,6 +216,7 @@ def test_review_script_template_round_trips(tmp_path, capsys):
     result.to_json(source)
     text = template(result)
     assert '#   p.1: "MEP-803A"' in text
+    assert 'also_accept: ["MEP 813 A"]' in text
     text = text.replace("        status: pending", "        status: accepted")
     added = """added:
       - {raw_value: DN4M, evidence: [{page: 2, quote: "Engine model DN4M"}]}
@@ -205,6 +234,7 @@ def test_review_script_template_round_trips(tmp_path, capsys):
         "MEP-813": "edited",
         "R-134a": "accepted",
     }
+    assert values["MEP-813"].review.equivalents == ["MEP 813 A"]
     assert values["DN4M"].signals.evidence_match == 1.0
     assert values["DN4X"].signals.evidence_match < 0.85
     assert "'DN4X' has evidence_match" in capsys.readouterr().err

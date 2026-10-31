@@ -57,8 +57,9 @@
           "review": {
             "status": "accepted",
             "reviewed_value": null,
+            "equivalents": [],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": null,
             "carried_from": null,
             "previous": null
@@ -103,8 +104,9 @@
           "review": {
             "status": "rejected",
             "reviewed_value": null,
+            "equivalents": [],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": "Product line, not a variant; the field asks for one designation per variant (289 and 747, added below).",
             "carried_from": null,
             "previous": null
@@ -136,8 +138,9 @@
           "review": {
             "status": "added",
             "reviewed_value": null,
+            "equivalents": [],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": "The manual names the variants only by number (spec table headers on p.79 are graphics).",
             "carried_from": null,
             "previous": null
@@ -169,8 +172,9 @@
           "review": {
             "status": "added",
             "reviewed_value": null,
+            "equivalents": [],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": null,
             "carried_from": null,
             "previous": null
@@ -215,8 +219,11 @@
           "review": {
             "status": "edited",
             "reviewed_value": "6 3/8\" x 6 3/8\" x 7 1/8\"",
+            "equivalents": [
+              "162 x 162 x 181 mm"
+            ],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": "Stacked fractions garble the text layer; the rendered page 79 shows 6 3/8, not 6 3/4.",
             "carried_from": null,
             "previous": null
@@ -248,8 +255,11 @@
           "review": {
             "status": "accepted",
             "reviewed_value": null,
+            "equivalents": [
+              "231 x 231 x 248 mm"
+            ],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": null,
             "carried_from": null,
             "previous": null
@@ -294,8 +304,9 @@
           "review": {
             "status": "accepted",
             "reviewed_value": null,
+            "equivalents": [],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": null,
             "carried_from": null,
             "previous": null
@@ -327,8 +338,9 @@
           "review": {
             "status": "accepted",
             "reviewed_value": null,
+            "equivalents": [],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": null,
             "carried_from": null,
             "previous": null
@@ -373,8 +385,11 @@
           "review": {
             "status": "accepted",
             "reviewed_value": null,
+            "equivalents": [
+              "ANTCLABS BLTouch"
+            ],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": null,
             "carried_from": null,
             "previous": null
@@ -419,8 +434,9 @@
           "review": {
             "status": "accepted",
             "reviewed_value": null,
+            "equivalents": [],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": null,
             "carried_from": null,
             "previous": null
@@ -465,8 +481,9 @@
           "review": {
             "status": "accepted",
             "reviewed_value": null,
+            "equivalents": [],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": null,
             "carried_from": null,
             "previous": null
@@ -511,8 +528,11 @@
           "review": {
             "status": "accepted",
             "reviewed_value": null,
+            "equivalents": [
+              "5° C to 32° C (41° F to 113° F)"
+            ],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": null,
             "carried_from": null,
             "previous": null
@@ -557,8 +577,11 @@
           "review": {
             "status": "accepted",
             "reviewed_value": null,
+            "equivalents": [
+              "Auto-switching 100VAC - 240VAC, 50/60Hz"
+            ],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": "Stated on the spec page for both power supplies; pages 18 and 52 contradict it (manual switch, added below).",
             "carried_from": null,
             "previous": null
@@ -595,8 +618,12 @@
           "review": {
             "status": "added",
             "reviewed_value": null,
+            "equivalents": [
+              "Check that the 110VAC or 240VAC switch is set to the correct voltage.",
+              "Check that the 110VAC or 240VAC switch is set to the correct voltage for your location."
+            ],
             "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
             "note": "The manual contradicts itself: a manual voltage switch here, auto-switching supplies on p.79. Both are stated, so the field is a conflict.",
             "carried_from": null,
             "previous": null
@@ -619,7 +646,7 @@
       "review": {
         "status": "confirmed_absent",
         "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
-        "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+        "reviewed_at": "2026-10-31T13:31:41.428342+01:00",
         "note": "A 3D printer; the manual mentions no refrigeration or air conditioning."
       }
     }

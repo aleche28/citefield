@@ -40,12 +40,14 @@ fields:
       - value_id: 4738960bb2a89ab8
         status: edited
         reviewed_value: '6 3/8" x 6 3/8" x 7 1/8"'
+        also_accept: ["162 x 162 x 181 mm"]
         note: "Stacked fractions garble the text layer; the rendered page 79 shows 6 3/8, not 6 3/4."
       # "9\" x 9\" x 9 1/4\"" (747), no unit
       #   p.79: "9\" x 9\" x 9 1/4\""
       #   evidence_match 0.9091, model_confidence 1.0
       - value_id: 5ebb336649fceda4
         status: accepted
+        also_accept: ["231 x 231 x 248 mm"]
     added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
   net_weight:
     # field status: found
@@ -71,6 +73,7 @@ fields:
       #   evidence_match 1.0, model_confidence 1.0
       - value_id: 4fc54cc750af7c24
         status: accepted
+        also_accept: ["ANTCLABS BLTouch"]
     added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
   filament_diameter:
     # field status: found
@@ -101,6 +104,7 @@ fields:
       #   evidence_match 1.0, model_confidence 1.0
       - value_id: c1be3a9496809efe
         status: accepted
+        also_accept: ["5° C to 32° C (41° F to 113° F)"]
     added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
   power_supply_voltage_selection:
     # field status: found
@@ -111,9 +115,13 @@ fields:
       #   evidence_match 1.0, model_confidence 1.0
       - value_id: 805ff6e972504ebf
         status: accepted
+        also_accept: ["Auto-switching 100VAC - 240VAC, 50/60Hz"]
         note: "Stated on the spec page for both power supplies; pages 18 and 52 contradict it (manual switch, added below)."
     added:
       - raw_value: "110VAC or 240VAC switch"
+        also_accept:
+          - "Check that the 110VAC or 240VAC switch is set to the correct voltage."
+          - "Check that the 110VAC or 240VAC switch is set to the correct voltage for your location."
         evidence:
           - {page: 18, quote: "Check that the 110VAC or 240VAC switch is set to the correct voltage for your location."}
           - {page: 52, quote: "110VAC or 240VAC switch is set to the correct voltage."}

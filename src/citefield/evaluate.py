@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,7 +19,6 @@ from citefield.output import (
     TokenUsage,
     Value,
     normalize_text,
-    value_key,
 )
 
 if TYPE_CHECKING:
@@ -27,6 +27,12 @@ if TYPE_CHECKING:
 # Signal ranges for accuracy by signal: [low, high), the last one closed.
 SIGNAL_RANGES = ((0.0, 0.5), (0.5, 0.85), (0.85, 1.0))
 SCORED_SIGNALS = ("evidence_match", "model_confidence")
+
+# Match key folding (ADR-0017): no whitespace or trademark signs, straight quotes.
+_DROP = re.compile(r"[\s\u00ae\u2122\u00a9]+")
+_QUOTES = str.maketrans(
+    {"\u201c": '"', "\u201d": '"', "\u2033": '"', "\u2018": "'", "\u2019": "'", "\u2032": "'"}
+)
 
 
 class FieldScore(BaseModel):
@@ -218,10 +224,18 @@ def score(pairs: Iterable[tuple[ExtractionResult, ExtractionResult]], config: Co
 
 
 @dataclass
-class _Truth:
-    """The reviewed values of one field in one golden output, by value key."""
+class _Positive:
+    """A reviewed value that counts as correct, matched by any of its forms."""
 
-    positives: dict[ScalarValue, set[str]] = field(default_factory=dict)  # key -> contexts
+    contexts: set[str] = field(default_factory=set)
+
+
+@dataclass
+class _Truth:
+    """The reviewed values of one field in one golden output, by match key."""
+
+    positives: list[_Positive] = field(default_factory=list)
+    by_key: dict[ScalarValue, _Positive] = field(default_factory=dict)
     negatives: set[ScalarValue] = field(default_factory=set)
     excluded: set[ScalarValue] = field(default_factory=set)
     confirmed_absent: bool = False
@@ -237,18 +251,33 @@ def _reviewed(f: FieldResult) -> bool:
 def _truth(doc_id: str, fdef: FieldDef, g_field: FieldResult, seen: set[tuple[str, str]]) -> _Truth:
     truth = _Truth(confirmed_absent=g_field.review.status == "confirmed_absent")
     # Values in the prompt's examples measure copying, not extraction.
-    truth.excluded = {value_key(e, e) for e in fdef.examples}
+    truth.excluded = {match_key(fdef, e) for e in fdef.examples}
+    equivalents: list[tuple[_Positive, Value]] = []
     for v in g_field.values:
         review = v.review
         if review.status in ("accepted", "added", "edited"):
             if review.carried_from and (doc_id, v.value_id) in seen:
-                truth.excluded.add(_golden_key(v))  # carried over: counted once already
+                truth.excluded |= _golden_keys(fdef, v)  # carried over: counted once already
                 continue
             seen.add((doc_id, v.value_id))
-            truth.positives.setdefault(_golden_key(v), set()).add(_context(v))
+            # Values with the same main form are one positive, with all their contexts.
+            key = _golden_key(fdef, v)
+            positive = truth.by_key.get(key)
+            if positive is None:
+                positive = truth.by_key[key] = _Positive()
+                truth.positives.append(positive)
+            positive.contexts.add(_context(v))
+            equivalents.append((positive, v))
         if review.status in ("edited", "rejected"):
-            truth.negatives.add(value_key(v.value, v.raw_value))
-    truth.negatives -= truth.positives.keys()
+            truth.negatives.add(match_key(fdef, v.value, v.raw_value, v.raw_unit))
+    for positive, v in equivalents:
+        for e in v.review.equivalents:
+            key = match_key(fdef, e)
+            if truth.by_key.setdefault(key, positive) is not positive:
+                raise EvalError(f"{doc_id}: field {fdef.name!r}: {e!r} matches two golden values")
+            if key in truth.negatives:
+                raise EvalError(f"{doc_id}: field {fdef.name!r}: {e!r} is also a negative")
+    truth.negatives -= truth.by_key.keys()
     return truth
 
 
@@ -263,42 +292,55 @@ def _score_field(
     s = FieldScore(name=fdef.name, documents=1)
     if p_field.status == "error":
         s.errors = 1
-    predicted: dict[ScalarValue, list[Value]] = {}
+    # Predictions grouped by the positive they match, or by key when they match none, so
+    # several forms of one golden value count once.
+    matched: dict[int, tuple[_Positive, list[Value]]] = {}
+    unmatched: dict[ScalarValue, list[Value]] = {}
     for v in p_field.values:
-        key = value_key(v.value, v.raw_value)
-        if key not in truth.excluded:
-            predicted.setdefault(key, []).append(v)
-
-    for key, values in predicted.items():
-        correct = key in truth.positives
-        if correct:
-            s.true_positives += 1
-            if {_context(v) for v in values} != truth.positives[key]:
-                s.context_mismatches += 1
+        key = match_key(fdef, v.value, v.raw_value, v.raw_unit)
+        if key in truth.excluded:
+            continue
+        positive = truth.by_key.get(key)
+        if positive is not None:
+            matched.setdefault(id(positive), (positive, []))[1].append(v)
         else:
-            s.false_positives += 1
-            if key not in truth.negatives:
-                s.unjudged += 1
-                unjudged.extend(
-                    UnjudgedValue(
-                        document_id=doc_id,
-                        field=fdef.name,
-                        value_id=v.value_id,
-                        raw_value=v.raw_value,
-                        context=v.context,
-                    )
-                    for v in values
+            unmatched.setdefault(key, []).append(v)
+
+    for positive, values in matched.values():
+        s.true_positives += 1
+        if {_context(v) for v in values} != positive.contexts:
+            s.context_mismatches += 1
+        _count_signals(values, True, buckets)
+    for key, values in unmatched.items():
+        s.false_positives += 1
+        if key not in truth.negatives:
+            s.unjudged += 1
+            unjudged.extend(
+                UnjudgedValue(
+                    document_id=doc_id,
+                    field=fdef.name,
+                    value_id=v.value_id,
+                    raw_value=v.raw_value,
+                    context=v.context,
                 )
-        for v in values:
-            for signal, signal_buckets in buckets.items():
-                bucket = _bucket(signal_buckets, getattr(v.signals, signal))
-                bucket.values += 1
-                bucket.correct += correct
-    s.false_negatives = len(truth.positives.keys() - predicted.keys())
+                for v in values
+            )
+        _count_signals(values, False, buckets)
+    s.false_negatives = len(truth.positives) - len(matched)
     if truth.confirmed_absent:
         s.confirmed_absent = 1
         s.not_found_correct = int(p_field.status == "not_found")
     return s
+
+
+def _count_signals(
+    values: list[Value], correct: bool, buckets: dict[str, list[SignalBucket]]
+) -> None:
+    for v in values:
+        for signal, signal_buckets in buckets.items():
+            bucket = _bucket(signal_buckets, getattr(v.signals, signal))
+            bucket.values += 1
+            bucket.correct += correct
 
 
 def _bucket(buckets: list[SignalBucket], x: float | None) -> SignalBucket:
@@ -310,10 +352,37 @@ def _bucket(buckets: list[SignalBucket], x: float | None) -> SignalBucket:
     return buckets[-2]
 
 
-def _golden_key(v: Value) -> ScalarValue:
+def match_key(
+    fdef: FieldDef, value: ScalarValue, raw_value: str | None = None, raw_unit: str | None = None
+) -> ScalarValue:
+    """What the evaluation compares: looser than `value_key`, which makes `value_id`.
+
+    Text is casefolded, without whitespace or trademark signs, with straight quotes and no
+    trailing footnote asterisks. A string field's raw unit is appended unless the text already
+    ends with it, so "18.92lb" matches "18.92" with unit "lb".
+    """
+    key = value if value is not None else raw_value
+    if not isinstance(key, str):
+        return key
+    text = _fold(key)
+    if fdef.type == "string" and raw_unit and not text.endswith(unit := _fold(raw_unit)):
+        text += unit
+    return text
+
+
+def _fold(text: str) -> str:
+    return _DROP.sub("", text.casefold().translate(_QUOTES)).rstrip("*")
+
+
+def _golden_key(fdef: FieldDef, v: Value) -> ScalarValue:
     if v.review.status == "edited":
-        return value_key(v.review.reviewed_value, v.raw_value)
-    return value_key(v.value, v.raw_value)
+        return match_key(fdef, v.review.reviewed_value, v.raw_value, v.raw_unit)
+    return match_key(fdef, v.value, v.raw_value, v.raw_unit)
+
+
+def _golden_keys(fdef: FieldDef, v: Value) -> set[ScalarValue]:
+    """The reviewed value's match key, and those of its equivalent forms."""
+    return {_golden_key(fdef, v)} | {match_key(fdef, e) for e in v.review.equivalents}
 
 
 def _context(v: Value) -> str:

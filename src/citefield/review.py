@@ -28,12 +28,15 @@ class ValueDecision(BaseModel):
     value_id: str
     status: Literal["pending", "accepted", "edited", "rejected"]
     reviewed_value: ScalarValue = None  # required when status is "edited"
+    also_accept: list[str] = []  # equivalent forms, for an accepted or edited value
     note: str | None = None
 
     @model_validator(mode="after")
     def _edited_needs_value(self) -> ValueDecision:
         if (self.status == "edited") != (self.reviewed_value is not None):
             raise ValueError(f"value {self.value_id}: reviewed_value goes with status 'edited'")
+        if self.also_accept and self.status not in ("accepted", "edited"):
+            raise ValueError(f"value {self.value_id}: also_accept needs status accepted or edited")
         return self
 
 
@@ -46,6 +49,7 @@ class AddedValue(BaseModel):
     unit: str | None = None
     context: str | None = None
     evidence: list[QuoteEvidence]
+    also_accept: list[str] = []  # equivalent forms
     note: str | None = None
 
     @model_validator(mode="after")
@@ -111,6 +115,7 @@ def apply_review(
                 update={
                     "status": item.status,
                     "reviewed_value": item.reviewed_value,
+                    "equivalents": item.also_accept,
                     "reviewer": reviewer if reviewed else None,
                     "reviewed_at": reviewed_at if reviewed else None,
                     "note": item.note,
@@ -173,5 +178,11 @@ def _added_value(
             ),
             citation_count=len({e.page for e in added.evidence}),
         ),
-        review=Review(status="added", reviewer=reviewer, reviewed_at=reviewed_at, note=added.note),
+        review=Review(
+            status="added",
+            equivalents=added.also_accept,
+            reviewer=reviewer,
+            reviewed_at=reviewed_at,
+            note=added.note,
+        ),
     )
