@@ -60,7 +60,13 @@ class Extractor:
             llm = self.config.settings.llm
             if not llm.model:
                 raise ExtractionError("settings.llm.model is not set")
-            self._backend = LiteLLMBackend(llm.model, llm.temperature, llm.max_retries)
+            self._backend = LiteLLMBackend(
+                llm.model,
+                llm.temperature,
+                llm.max_retries,
+                reasoning_effort=llm.reasoning_effort,
+                provider=llm.provider,
+            )
         return self._backend
 
     def parse(self, path: str | Path) -> ParsedDocument:

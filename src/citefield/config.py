@@ -7,7 +7,7 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
 from pydantic import BaseModel, field_validator, model_validator
@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     import pint
 
 FieldType = Literal["number", "integer", "string", "boolean", "enum", "date"]
+ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh"]
 
 FIELD_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$")
 
@@ -50,7 +51,15 @@ class FieldDef(BaseModel):
 class LLMSettings(BaseModel):
     model: str | None = None
     temperature: float | None = 0  # None: not sent, for models that don't accept it
+    reasoning_effort: ReasoningEffort | None = None  # None: not sent, the provider's default
+    provider: dict[str, Any] | None = None  # OpenRouter provider routing, for openrouter/ models
     max_retries: int = 2
+
+    @model_validator(mode="after")
+    def _provider_needs_openrouter(self) -> LLMSettings:
+        if self.provider is not None and not (self.model or "").startswith("openrouter/"):
+            raise ValueError("settings.llm.provider is only for openrouter/ models")
+        return self
 
 
 class ChunkingSettings(BaseModel):
@@ -119,11 +128,20 @@ class Config(BaseModel):
         return stable_hash(
             {
                 "parser": s.parser,
-                "llm": {"model": s.llm.model, "temperature": s.llm.temperature},
+                "llm": _llm_hash_input(s.llm),
                 "chunking": s.chunking.model_dump(mode="json"),
                 "extraction": s.extraction.model_dump(mode="json"),
             }
         )
+
+
+def _llm_hash_input(llm: LLMSettings) -> dict[str, Any]:
+    data: dict[str, Any] = {"model": llm.model, "temperature": llm.temperature}
+    # Added only when set, so hashes recorded before these settings existed still match.
+    for key in ("reasoning_effort", "provider"):
+        if getattr(llm, key) is not None:
+            data[key] = getattr(llm, key)
+    return data
 
 
 def stable_hash(data: object) -> str:

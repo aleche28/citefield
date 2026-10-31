@@ -137,6 +137,8 @@ settings:
   llm:
     model: provider/model-name
     temperature: 0 # null: not sent, for models that don't accept it
+    reasoning_effort: null # none | minimal | low | medium | high | xhigh; null: provider default
+    provider: null # OpenRouter provider routing, e.g. {order: [deepinfra/bf16], allow_fallbacks: false}
     max_retries: 2
   chunking:
     max_input_tokens: auto # auto = model context window minus prompt and output reserve
@@ -155,7 +157,9 @@ settings:
 
 **Validation rules.** Field names are unique snake_case. Enum fields need `values`, and only enum fields may have them. Only number and integer fields may have a `unit`, and every `unit` must resolve in the pint registry, including custom `units`. The config is validated with pydantic before any LLM call (`citefield validate-config`).
 
-**Hashes.** The output records a `schema_hash` over the normalized `fields` and `units`, and a `settings_hash` over settings that change results (parser, model, chunking, extraction). Re-extraction and evaluation use them to tell what changed.
+**LLM routing.** `provider` is passed to OpenRouter as its provider-routing preferences, merged over `require_parameters: true`, and is allowed only for `openrouter/` models; pin an endpoint by its tag with `allow_fallbacks: false` to make runs comparable. `reasoning_effort` goes to LiteLLM, which maps it for each provider. Decision record: [ADR-0018](adr/0018-add-openrouter-provider-routing-and-reasoning-effort-settings.md).
+
+**Hashes.** The output records a `schema_hash` over the normalized `fields` and `units`, and a `settings_hash` over settings that change results (parser, model, temperature, reasoning effort and provider routing when set, chunking, extraction). Re-extraction and evaluation use them to tell what changed.
 
 ## Extraction
 
