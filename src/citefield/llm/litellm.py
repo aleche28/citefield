@@ -16,10 +16,20 @@ DEFAULT_CONTEXT_WINDOW = 128_000
 class LiteLLMBackend:
     name = "litellm"
 
-    def __init__(self, model: str, temperature: float | None = 0, num_retries: int = 2) -> None:
+    def __init__(
+        self,
+        model: str,
+        temperature: float | None = 0,
+        num_retries: int = 2,
+        *,
+        reasoning_effort: str | None = None,
+        provider: dict[str, Any] | None = None,
+    ) -> None:
         self.model = model
         self.temperature = temperature
         self.num_retries = num_retries  # transient API errors; invalid output is retried upstream
+        self.reasoning_effort = reasoning_effort
+        self.provider = provider  # OpenRouter provider routing preferences
 
     @property
     def context_window(self) -> int:
@@ -42,10 +52,13 @@ class LiteLLMBackend:
         kwargs: dict[str, Any] = {}
         if self.temperature is not None:
             kwargs["temperature"] = self.temperature
+        if self.reasoning_effort is not None:
+            kwargs["reasoning_effort"] = self.reasoning_effort
         if self.model.startswith("openrouter/"):
             # Route only to providers that support every parameter we send, so a
             # structured-output request never lands on one that ignores the schema.
-            kwargs["extra_body"] = {"provider": {"require_parameters": True}}
+            provider = {"require_parameters": True, **(self.provider or {})}
+            kwargs["extra_body"] = {"provider": provider}
         response = litellm.completion(
             model=self.model,
             messages=[m.model_dump() for m in messages],

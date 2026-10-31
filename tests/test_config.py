@@ -1,7 +1,12 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
-from citefield.config import Config, load_config
+from citefield.config import Config, LLMSettings, load_config
+from citefield.output import ExtractionResult
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def make(fields, **extra):
@@ -71,3 +76,25 @@ def test_hashes_track_what_changes_results():
     assert base.schema_hash() != other_field.schema_hash()
     assert base.settings_hash() != other_model.settings_hash()
     assert base.settings_hash() == other_proposals.settings_hash()
+
+
+def test_provider_routing_is_only_for_openrouter():
+    llm = {"model": "anthropic/claude-haiku-5.5", "provider": {"order": ["anthropic"]}}
+    with pytest.raises(ValidationError, match="only for openrouter/"):
+        make([{"name": "a", "description": "x"}], settings={"llm": llm})
+
+
+def test_reasoning_and_routing_change_the_settings_hash():
+    def llm(**extra):
+        settings = {"llm": {"model": "openrouter/qwen/qwen3.8-27b", **extra}}
+        return make([{"name": "a", "description": "x"}], settings=settings).settings_hash()
+
+    hashes = {llm(), llm(reasoning_effort="none"), llm(provider={"order": ["deepinfra/bf16"]})}
+    assert len(hashes) == 3
+
+
+def test_unset_new_settings_keep_recorded_hashes():
+    golden = ExtractionResult.from_json(ROOT / "corpus/golden/generator/tm-9-6115-642-10.json")
+    config = load_config(ROOT / "examples/generator.yaml")
+    config.settings.llm = LLMSettings(model=golden.run.model)  # the golden set's model
+    assert config.settings_hash() == golden.run.settings_hash

@@ -137,6 +137,8 @@ settings:
   llm:
     model: provider/model-name
     temperature: 0 # null: not sent, for models that don't accept it
+    reasoning_effort: null # none | minimal | low | medium | high | xhigh; null: provider default
+    provider: null # OpenRouter provider routing, e.g. {order: [deepinfra/bf16], allow_fallbacks: false}
     max_retries: 2
   chunking:
     max_input_tokens: auto # auto = model context window minus prompt and output reserve
@@ -155,7 +157,9 @@ settings:
 
 **Validation rules.** Field names are unique snake_case. Enum fields need `values`, and only enum fields may have them. Only number and integer fields may have a `unit`, and every `unit` must resolve in the pint registry, including custom `units`. The config is validated with pydantic before any LLM call (`citefield validate-config`).
 
-**Hashes.** The output records a `schema_hash` over the normalized `fields` and `units`, and a `settings_hash` over settings that change results (parser, model, chunking, extraction). Re-extraction and evaluation use them to tell what changed.
+**LLM routing.** `provider` is passed to OpenRouter as its provider-routing preferences, merged over `require_parameters: true`, and is allowed only for `openrouter/` models; pin an endpoint by its tag with `allow_fallbacks: false` to make runs comparable. `reasoning_effort` goes to LiteLLM, which maps it for each provider. Decision record: [ADR-0018](adr/0018-add-openrouter-provider-routing-and-reasoning-effort-settings.md).
+
+**Hashes.** The output records a `schema_hash` over the normalized `fields` and `units`, and a `settings_hash` over settings that change results (parser, model, temperature, reasoning effort and provider routing when set, chunking, extraction). Re-extraction and evaluation use them to tell what changed.
 
 ## Extraction
 
@@ -419,10 +423,11 @@ v1 is a library plus CLI for PDF and Markdown that extracts, verifies, merges, p
 - [ ] Document identity across revisions: user-set `document_id` only, or also infer it from file names?
 - [ ] Token counting for arbitrary models: LiteLLM's counter, or a conservative character heuristic as fallback?
 - [ ] Choosing the LLM backend: the extractor always builds the LiteLLM adapter, and a third-party backend registered under `citefield.llm_backends` can only be passed to `Extractor` directly. Should a setting such as `settings.llm.backend` select it through the entry point, and how does a backend get built from settings? Both change the config schema and the plugin protocol, so the answer needs an ADR.
-- [ ] Prompt order for prefix caching: the field list comes before the manual, so calls on the same document share only the system prompt. With the manual first, extra field batches, runs and chunks could reuse a cached prefix at a lower price. It changes the prompt, so it needs a new prompt version; compare both orders in the model bake-off.
+- [ ] Prompt order for prefix caching: the field list comes before the manual, so calls on the same document share only the system prompt. With the manual first, extra field batches, runs and chunks could reuse a cached prefix at a lower price. It changes the prompt, so it needs a new prompt version; compare both orders on the default model.
 - [ ] Wrong unjudged predictions: the evaluation lists predictions the golden set doesn't cover, but only correct ones can be reviewed in (as added values). How should a wrong one become a negative: copy a prediction's unjudged values into the golden output as pending, or let decisions reject a value by its raw value?
 - [ ] Carried-over values in the evaluation: they count once by `document_id` and `value_id`, but carry-over isn't built yet. When two revisions of a manual are both in the golden set, should a carried-over value be scored on the later revision at all, and should a carried-over `confirmed_absent` count again?
 - [ ] Parallel calls: a document's batch calls run one after another, and `--workers` is accepted but not used yet. Should calls within a document run concurrently, files in a folder, or both, and how do they share the provider's rate limits?
+- [ ] Request timeout: no LLM call has a timeout, so a stalled call blocks the run (in the bake-off a reasoning model on a pinned endpoint ran for over 8 minutes without returning). Should `settings.llm` get a timeout, and does a timed-out batch become an `error` field like an invalid response?
 - [x] Final project name: citefield.
 
 ## Acknowledgements and licensing

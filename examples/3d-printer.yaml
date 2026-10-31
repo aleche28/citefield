@@ -37,4 +37,5 @@ fields:
 
 settings:
   llm:
-    model: openrouter/google/gemini-3.1-flash-lite
+    model: openrouter/anthropic/claude-haiku-5.5 # ADR-0019
+    temperature: null # not accepted by the model
