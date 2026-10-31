@@ -56,3 +56,28 @@ def test_extract_dir_reports_broken_files_and_goes_on(tmp_path, capsys):
     captured = capsys.readouterr()
     assert "broken.pdf: can't parse" in captured.err
     assert "good.pdf: 1 chunk(s)" in captured.out
+
+
+def test_eval_scores_saved_predictions(tmp_path, capsys):
+    from fakes import output, value
+
+    config = tmp_path / "fields.yaml"
+    config.write_text(CONFIG, encoding="utf-8")
+    golden, predictions = tmp_path / "golden", tmp_path / "predictions"
+    golden.mkdir()
+    predictions.mkdir()
+    f = "engine_manufacturer"
+    output("tm", **{f: [value(f, "Onan", "accepted")]}).to_json(golden / "tm.json")
+    output("tm", **{f: [value(f, "Onan"), value(f, "Kubota")]}).to_json(predictions / "tm.json")
+    report = tmp_path / "report.json"
+
+    args = ["eval", str(golden), "-c", str(config), "--predictions", str(predictions)]
+    assert main([*args, "--json", str(report)]) == 0
+    out = capsys.readouterr().out
+    assert "engine_manufacturer     1   1   1   0         1       0.50    1.00" in out
+    assert "evidence_match    0.85-1.00         2        1       0.50" in out
+    assert "tm · engine_manufacturer" in out and "'Kubota'" in out
+    assert '"precision": 0.5' in report.read_text(encoding="utf-8")
+
+    assert main(["eval", str(tmp_path / "missing"), "-c", str(config)]) == 1
+    assert "not a directory" in capsys.readouterr().err

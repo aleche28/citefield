@@ -16,4 +16,4 @@ def test_config_defaults():
 
 
 def test_unimplemented_command_exits_2():
-    assert main(["eval", "out/", "-c", "fields.yaml"]) == 2
+    assert main(["reextract", "m.pdf", "--previous", "out/m.json"]) == 2
