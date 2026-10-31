@@ -2,7 +2,7 @@
 
 Real manuals for development runs and evaluation. Every file here is public domain or openly licensed, so the repository can redistribute it ([ADR-0011](../docs/adr/0011-use-only-redistributable-manuals-as-test-data.md)). The files are stored byte for byte as downloaded; compare `shasum -a 256 corpus/manuals/*.pdf` with the table below.
 
-The corpus is not part of the citefield package and does not fall under its Apache 2.0 license: each file keeps the license listed here. CI does not use it; unit tests use small synthetic fixtures.
+The corpus is not part of the citefield package and does not fall under its Apache 2.0 license: each file keeps the license listed here. CI doesn't read the manuals; unit tests use small synthetic fixtures.
 
 | File | Document | License | Source | SHA-256 |
 | ---- | -------- | ------- | ------ | ------- |
@@ -20,3 +20,21 @@ The corpus is not part of the citefield package and does not fall under its Apac
 - [TM 9-6115-464-12](https://manuals.chudov.com/Military-Generators/MEP-113A/TM-9-6115-464-12.pdf) (Distribution Statement A, operator and unit maintenance): its text layer looks like OCR output, a robustness case.
 
 **Adding a manual**: it must be public domain or carry an open license that allows redistribution (no "freely downloadable" proprietary manuals). Add the file unmodified under `manuals/` with a lowercase kebab-case name, and a row here with the document, license and where it is stated, source URL with download date, and SHA-256.
+
+## Golden set
+
+`golden/<config>/` holds the reviewed outputs that `citefield eval` scores against, one per manual, made with the config of the same name in [`examples/`](../examples/). Next to each output, `<document_id>.review.yaml` holds the reviewer's decisions. The outputs quote the manuals, so those quotes keep the manual's license (CC BY-SA 4.0 for the LulzBot guide). CI checks that every golden output still loads and matches its config.
+
+To review or extend a golden output (from the repository root):
+
+```sh
+# set statuses in the YAML: accepted, edited (with reviewed_value) or rejected; add missed
+# values under `added` with a quote and page; set a field to confirmed_absent if the manual
+# doesn't state it
+uv run python scripts/review.py apply corpus/golden/generator/tm-9-6115-642-10.json \
+  corpus/golden/generator/tm-9-6115-642-10.review.yaml \
+  -o corpus/golden/generator/tm-9-6115-642-10.json
+uv run citefield eval corpus/golden/generator -c examples/generator.yaml
+```
+
+`uv run python scripts/review.py template <output.json>` writes a fresh decisions file for a new output.

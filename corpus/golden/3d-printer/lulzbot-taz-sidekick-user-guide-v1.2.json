@@ -1,0 +1,682 @@
+{
+  "citefield_version": "0.0.1",
+  "output_schema_version": 1,
+  "document": {
+    "document_id": "lulzbot-taz-sidekick-user-guide-v1.2",
+    "path": "corpus/manuals/lulzbot-taz-sidekick-user-guide-v1.2.pdf",
+    "sha256": "9ef45d18ff84f91cee609b584bac2a16299b00cb321474e771c2f520ffaf55b6",
+    "units": 100,
+    "parser": {
+      "name": "pdfplumber",
+      "version": "0.11.10"
+    }
+  },
+  "run": {
+    "run_id": "440f3c3a9f694c0e9fa3612f3d1a573e",
+    "started_at": "2026-10-31T10:16:06.140402+01:00",
+    "model": "openrouter/google/gemini-3.1-flash-lite",
+    "prompt_version": "extract-v1",
+    "schema_hash": "0d976c6d2efc9bfaf7536461cf5cb6431f013eaaf9b760c0be80dae45f08dcb7",
+    "settings_hash": "bbafc6f1b70a9d89d3d4aa62be295023ee9c9bcb3eb486d16e74f83ad3de76a1",
+    "n_runs": 1,
+    "chunks": 1,
+    "llm_calls": 1,
+    "tokens": {
+      "input": 31106,
+      "output": 1292
+    }
+  },
+  "fields": [
+    {
+      "name": "machine_category",
+      "status": "found",
+      "values": [
+        {
+          "value_id": "b2db757840463fdf",
+          "status": "found",
+          "raw_value": "3d_printer",
+          "raw_unit": null,
+          "value": "3d_printer",
+          "unit": null,
+          "derivation": null,
+          "context": null,
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 8,
+              "quote": "Your TAZ SideKick is a Fused Filament Fabrication (FFF) style printer, so we will focus on that method of 3D printing."
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "accepted",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": null,
+            "carried_from": null,
+            "previous": null
+          }
+        }
+      ],
+      "error": null,
+      "review": {
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "note": null
+      }
+    },
+    {
+      "name": "model_designation",
+      "status": "conflict",
+      "values": [
+        {
+          "value_id": "98feee4ed0b988c3",
+          "status": "found",
+          "raw_value": "LulzBot TAZ SideKick",
+          "raw_unit": null,
+          "value": "LulzBot TAZ SideKick",
+          "unit": null,
+          "derivation": null,
+          "context": null,
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 4,
+              "quote": "LulzBot TAZ SideKick User Guide"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "rejected",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": "Product line, not a variant; the field asks for one designation per variant (289 and 747, added below).",
+            "carried_from": null,
+            "previous": null
+          }
+        },
+        {
+          "value_id": "da2e82986bc6cb12",
+          "status": "found",
+          "raw_value": "289",
+          "raw_unit": null,
+          "value": "289",
+          "unit": null,
+          "derivation": null,
+          "context": "289",
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 61,
+              "quote": "289 Models - 9-point probing"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": null,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "added",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": "The manual names the variants only by number (spec table headers on p.79 are graphics).",
+            "carried_from": null,
+            "previous": null
+          }
+        },
+        {
+          "value_id": "415e0a23dca6e285",
+          "status": "found",
+          "raw_value": "747",
+          "raw_unit": null,
+          "value": "747",
+          "unit": null,
+          "derivation": null,
+          "context": "747",
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 61,
+              "quote": "747 Models - 16-point probing"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": null,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "added",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": null,
+            "carried_from": null,
+            "previous": null
+          }
+        }
+      ],
+      "error": null,
+      "review": {
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "note": null
+      }
+    },
+    {
+      "name": "build_volume",
+      "status": "found",
+      "values": [
+        {
+          "value_id": "4738960bb2a89ab8",
+          "status": "found",
+          "raw_value": "6 3/4\" x 6 3/4\" x 7 1/8\"",
+          "raw_unit": null,
+          "value": "6 3/4\" x 6 3/4\" x 7 1/8\"",
+          "unit": null,
+          "derivation": null,
+          "context": "289",
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 79,
+              "quote": "6 3/4\" x 6 3/4\" x 7 1/8\""
+            }
+          ],
+          "signals": {
+            "evidence_match": 0.8235,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "edited",
+            "reviewed_value": "6 3/8\" x 6 3/8\" x 7 1/8\"",
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": "Stacked fractions garble the text layer; the rendered page 79 shows 6 3/8, not 6 3/4.",
+            "carried_from": null,
+            "previous": null
+          }
+        },
+        {
+          "value_id": "5ebb336649fceda4",
+          "status": "found",
+          "raw_value": "9\" x 9\" x 9 1/4\"",
+          "raw_unit": null,
+          "value": "9\" x 9\" x 9 1/4\"",
+          "unit": null,
+          "derivation": null,
+          "context": "747",
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 79,
+              "quote": "9\" x 9\" x 9 1/4\""
+            }
+          ],
+          "signals": {
+            "evidence_match": 0.9091,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "accepted",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": null,
+            "carried_from": null,
+            "previous": null
+          }
+        }
+      ],
+      "error": null,
+      "review": {
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "note": null
+      }
+    },
+    {
+      "name": "net_weight",
+      "status": "found",
+      "values": [
+        {
+          "value_id": "4c21ab43f7d8ed6c",
+          "status": "found",
+          "raw_value": "18.92",
+          "raw_unit": "lb",
+          "value": "18.92",
+          "unit": null,
+          "derivation": null,
+          "context": "289",
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 79,
+              "quote": "18.92lb"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "accepted",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": null,
+            "carried_from": null,
+            "previous": null
+          }
+        },
+        {
+          "value_id": "f4364f3b7d7b3294",
+          "status": "found",
+          "raw_value": "20.35",
+          "raw_unit": "lb",
+          "value": "20.35",
+          "unit": null,
+          "derivation": null,
+          "context": "747",
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 79,
+              "quote": "20.35lb"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "accepted",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": null,
+            "carried_from": null,
+            "previous": null
+          }
+        }
+      ],
+      "error": null,
+      "review": {
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "note": null
+      }
+    },
+    {
+      "name": "bed_leveling",
+      "status": "found",
+      "values": [
+        {
+          "value_id": "4fc54cc750af7c24",
+          "status": "found",
+          "raw_value": "Genuine ANTCLABS BLTouch",
+          "raw_unit": null,
+          "value": "Genuine ANTCLABS BLTouch",
+          "unit": null,
+          "derivation": null,
+          "context": null,
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 79,
+              "quote": "Genuine ANTCLABS BLTouch®"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "accepted",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": null,
+            "carried_from": null,
+            "previous": null
+          }
+        }
+      ],
+      "error": null,
+      "review": {
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "note": null
+      }
+    },
+    {
+      "name": "filament_diameter",
+      "status": "found",
+      "values": [
+        {
+          "value_id": "558176481ad330e5",
+          "status": "found",
+          "raw_value": "1.75mm or 2.85mm",
+          "raw_unit": null,
+          "value": "1.75mm or 2.85mm",
+          "unit": null,
+          "derivation": null,
+          "context": null,
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 79,
+              "quote": "1.75mm or 2.85mm*"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "accepted",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": null,
+            "carried_from": null,
+            "previous": null
+          }
+        }
+      ],
+      "error": null,
+      "review": {
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "note": null
+      }
+    },
+    {
+      "name": "motion_system",
+      "status": "found",
+      "values": [
+        {
+          "value_id": "a299c759e088c19d",
+          "status": "found",
+          "raw_value": "Belt Driven",
+          "raw_unit": null,
+          "value": "Belt Driven",
+          "unit": null,
+          "derivation": null,
+          "context": null,
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 79,
+              "quote": "Motion: Belt Driven"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "accepted",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": null,
+            "carried_from": null,
+            "previous": null
+          }
+        }
+      ],
+      "error": null,
+      "review": {
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "note": null
+      }
+    },
+    {
+      "name": "ambient_operating_temperature",
+      "status": "found",
+      "values": [
+        {
+          "value_id": "c1be3a9496809efe",
+          "status": "found",
+          "raw_value": "5° C to 32° C",
+          "raw_unit": null,
+          "value": "5° C to 32° C",
+          "unit": null,
+          "derivation": null,
+          "context": null,
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 79,
+              "quote": "5° C to 32° C (41° F to 113° F)"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "accepted",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": null,
+            "carried_from": null,
+            "previous": null
+          }
+        }
+      ],
+      "error": null,
+      "review": {
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "note": null
+      }
+    },
+    {
+      "name": "power_supply_voltage_selection",
+      "status": "conflict",
+      "values": [
+        {
+          "value_id": "805ff6e972504ebf",
+          "status": "found",
+          "raw_value": "Auto-switching",
+          "raw_unit": null,
+          "value": "Auto-switching",
+          "unit": null,
+          "derivation": null,
+          "context": null,
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 79,
+              "quote": "Auto-switching MEAN WELL RSP-150-24"
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 1,
+            "run_agreement": null,
+            "model_confidence": 1.0,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "accepted",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": "Stated on the spec page for both power supplies; pages 18 and 52 contradict it (manual switch, added below).",
+            "carried_from": null,
+            "previous": null
+          }
+        },
+        {
+          "value_id": "f0f28d8f3c575050",
+          "status": "found",
+          "raw_value": "110VAC or 240VAC switch",
+          "raw_unit": null,
+          "value": "110VAC or 240VAC switch",
+          "unit": null,
+          "derivation": null,
+          "context": null,
+          "evidence": [
+            {
+              "kind": "quote",
+              "page": 18,
+              "quote": "Check that the 110VAC or 240VAC switch is set to the correct voltage for your location."
+            },
+            {
+              "kind": "quote",
+              "page": 52,
+              "quote": "110VAC or 240VAC switch is set to the correct voltage."
+            }
+          ],
+          "signals": {
+            "evidence_match": 1.0,
+            "citation_count": 2,
+            "run_agreement": null,
+            "model_confidence": null,
+            "unit_resolved": null
+          },
+          "review": {
+            "status": "added",
+            "reviewed_value": null,
+            "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+            "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+            "note": "The manual contradicts itself: a manual voltage switch here, auto-switching supplies on p.79. Both are stated, so the field is a conflict.",
+            "carried_from": null,
+            "previous": null
+          }
+        }
+      ],
+      "error": null,
+      "review": {
+        "status": "pending",
+        "reviewer": null,
+        "reviewed_at": null,
+        "note": null
+      }
+    },
+    {
+      "name": "refrigerant_type",
+      "status": "not_found",
+      "values": [],
+      "error": null,
+      "review": {
+        "status": "confirmed_absent",
+        "reviewer": "claude-opus-5-5, validated by Alessio Chessa",
+        "reviewed_at": "2026-10-31T11:00:28.732138+01:00",
+        "note": "A 3D printer; the manual mentions no refrigeration or air conditioning."
+      }
+    }
+  ],
+  "proposals": [],
+  "warnings": [
+    {
+      "code": "low_text_units",
+      "message": null,
+      "field": null,
+      "units": [
+        1,
+        2,
+        3,
+        6,
+        7,
+        10,
+        11,
+        14,
+        15,
+        20,
+        21,
+        26,
+        27,
+        30,
+        31,
+        32,
+        34,
+        35,
+        46,
+        47,
+        50,
+        51,
+        58,
+        59,
+        64,
+        65,
+        76,
+        77,
+        80,
+        81,
+        86,
+        87,
+        94,
+        95,
+        98,
+        99,
+        100
+      ],
+      "raw": null
+    },
+    {
+      "code": "evidence_not_verified",
+      "message": "best evidence_match 0.8235 is below fuzzy_min_ratio 0.85",
+      "field": "build_volume",
+      "units": null,
+      "raw": "6 3/4\" x 6 3/4\" x 7 1/8\""
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+# Review of lulzbot-taz-sidekick-user-guide-v1.2 (corpus/manuals/lulzbot-taz-sidekick-user-guide-v1.2.pdf)
+# run 440f3c3a9f694c0e9fa3612f3d1a573e, model openrouter/google/gemini-3.1-flash-lite
+reviewer: "claude-opus-5-5, validated by Alessio Chessa"
+fields:
+  machine_category:
+    # field status: found
+    status: pending  # or confirmed_absent
+    values:
+      # "3d_printer", no unit
+      #   p.8: "Your TAZ SideKick is a Fused Filament Fabrication (FFF) style printer, so we will focus on that method of 3D printing."
+      #   evidence_match 1.0, model_confidence 1.0
+      - value_id: b2db757840463fdf
+        status: accepted
+    added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
+  model_designation:
+    # field status: found
+    status: pending  # or confirmed_absent
+    values:
+      # "LulzBot TAZ SideKick", no unit
+      #   p.4: "LulzBot TAZ SideKick User Guide"
+      #   evidence_match 1.0, model_confidence 1.0
+      - value_id: 98feee4ed0b988c3
+        status: rejected
+        note: "Product line, not a variant; the field asks for one designation per variant (289 and 747, added below)."
+    added:
+      - raw_value: "289"
+        context: "289"
+        evidence: [{page: 61, quote: "289 Models - 9-point probing"}]
+        note: "The manual names the variants only by number (spec table headers on p.79 are graphics)."
+      - raw_value: "747"
+        context: "747"
+        evidence: [{page: 61, quote: "747 Models - 16-point probing"}]
+  build_volume:
+    # field status: found
+    status: pending  # or confirmed_absent
+    values:
+      # "6 3/4\" x 6 3/4\" x 7 1/8\"" (289), no unit
+      #   p.79: "6 3/4\" x 6 3/4\" x 7 1/8\""
+      #   evidence_match 0.8235, model_confidence 1.0
+      - value_id: 4738960bb2a89ab8
+        status: edited
+        reviewed_value: '6 3/8" x 6 3/8" x 7 1/8"'
+        note: "Stacked fractions garble the text layer; the rendered page 79 shows 6 3/8, not 6 3/4."
+      # "9\" x 9\" x 9 1/4\"" (747), no unit
+      #   p.79: "9\" x 9\" x 9 1/4\""
+      #   evidence_match 0.9091, model_confidence 1.0
+      - value_id: 5ebb336649fceda4
+        status: accepted
+    added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
+  net_weight:
+    # field status: found
+    status: pending  # or confirmed_absent
+    values:
+      # "18.92" (289), lb
+      #   p.79: "18.92lb"
+      #   evidence_match 1.0, model_confidence 1.0
+      - value_id: 4c21ab43f7d8ed6c
+        status: accepted
+      # "20.35" (747), lb
+      #   p.79: "20.35lb"
+      #   evidence_match 1.0, model_confidence 1.0
+      - value_id: f4364f3b7d7b3294
+        status: accepted
+    added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
+  bed_leveling:
+    # field status: found
+    status: pending  # or confirmed_absent
+    values:
+      # "Genuine ANTCLABS BLTouch", no unit
+      #   p.79: "Genuine ANTCLABS BLTouch®"
+      #   evidence_match 1.0, model_confidence 1.0
+      - value_id: 4fc54cc750af7c24
+        status: accepted
+    added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
+  filament_diameter:
+    # field status: found
+    status: pending  # or confirmed_absent
+    values:
+      # "1.75mm or 2.85mm", no unit
+      #   p.79: "1.75mm or 2.85mm*"
+      #   evidence_match 1.0, model_confidence 1.0
+      - value_id: 558176481ad330e5
+        status: accepted
+    added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
+  motion_system:
+    # field status: found
+    status: pending  # or confirmed_absent
+    values:
+      # "Belt Driven", no unit
+      #   p.79: "Motion: Belt Driven"
+      #   evidence_match 1.0, model_confidence 1.0
+      - value_id: a299c759e088c19d
+        status: accepted
+    added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
+  ambient_operating_temperature:
+    # field status: found
+    status: pending  # or confirmed_absent
+    values:
+      # "5° C to 32° C", no unit
+      #   p.79: "5° C to 32° C (41° F to 113° F)"
+      #   evidence_match 1.0, model_confidence 1.0
+      - value_id: c1be3a9496809efe
+        status: accepted
+    added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
+  power_supply_voltage_selection:
+    # field status: found
+    status: pending  # or confirmed_absent
+    values:
+      # "Auto-switching", no unit
+      #   p.79: "Auto-switching MEAN WELL RSP-150-24"
+      #   evidence_match 1.0, model_confidence 1.0
+      - value_id: 805ff6e972504ebf
+        status: accepted
+        note: "Stated on the spec page for both power supplies; pages 18 and 52 contradict it (manual switch, added below)."
+    added:
+      - raw_value: "110VAC or 240VAC switch"
+        evidence:
+          - {page: 18, quote: "Check that the 110VAC or 240VAC switch is set to the correct voltage for your location."}
+          - {page: 52, quote: "110VAC or 240VAC switch is set to the correct voltage."}
+        note: "The manual contradicts itself: a manual voltage switch here, auto-switching supplies on p.79. Both are stated, so the field is a conflict."
+  refrigerant_type:
+    # field status: not_found
+    status: confirmed_absent
+    note: "A 3D printer; the manual mentions no refrigeration or air conditioning."
+    values: []
+    added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}
