@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from citefield.config import Config, load_config
+from citefield.config import Config, LLMSettings, load_config
 from citefield.output import ExtractionResult
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -95,4 +95,6 @@ def test_reasoning_and_routing_change_the_settings_hash():
 
 def test_unset_new_settings_keep_recorded_hashes():
     golden = ExtractionResult.from_json(ROOT / "corpus/golden/generator/tm-9-6115-642-10.json")
-    assert load_config(ROOT / "examples/generator.yaml").settings_hash() == golden.run.settings_hash
+    config = load_config(ROOT / "examples/generator.yaml")
+    config.settings.llm = LLMSettings(model=golden.run.model)  # the golden set's model
+    assert config.settings_hash() == golden.run.settings_hash

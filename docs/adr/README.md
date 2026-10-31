@@ -32,4 +32,5 @@ ADRs 0002–0010 were backfilled from design.md v1.0.0 when this log started.
 | [0016](0016-let-eval-score-saved-outputs.md) | Let eval score saved outputs as well as extract again | Accepted | 2026-10-31 |
 | [0017](0017-match-eval-values-loosely-and-accept-reviewed-equivalents.md) | Match evaluation values on a looser key, and accept equivalent forms the reviewer declares | Accepted | 2026-10-31 |
 | [0018](0018-add-openrouter-provider-routing-and-reasoning-effort-settings.md) | Add OpenRouter provider routing and reasoning effort to the LLM settings | Accepted | 2026-10-31 |
+| [0019](0019-use-claude-haiku-5-5-as-the-default-model.md) | Use Claude Haiku 5.5 as the default model in the examples | Accepted | 2026-10-31 |
 <!-- adr-index:end -->

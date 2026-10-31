@@ -4,6 +4,7 @@
 | ------------------------------ | --------------------------------------------------------------------------- |
 | [design.md](design.md)         | The current design: architecture, config, output, API. Kept up to date.     |
 | [adr/](adr/README.md)          | Architecture decision records: why the design is the way it is. Append-only. |
+| [evaluations/](evaluations/model-bakeoff-2026-10.md) | Evaluation reports, such as model comparisons on the golden set. |
 
 Folders are added when they have content. The planned ones are:
 
