@@ -27,4 +27,7 @@ ADRs 0002–0010 were backfilled from design.md v1.0.0 when this log started.
 | [0011](0011-use-only-redistributable-manuals-as-test-data.md) | Use only redistributable or synthetic manuals as test data, committed in the repository | Accepted | 2026-10-30 |
 | [0012](0012-llm-backends-return-token-usage.md) | LLM backends return token usage with each structured response | Accepted | 2026-10-30 |
 | [0013](0013-report-evidence-match-as-the-raw-best-score.md) | Report evidence_match as the raw best score, and flag weak evidence with a warning | Accepted | 2026-10-30 |
+| [0014](0014-record-field-level-review-in-the-output.md) | Record field-level review in the output, as a review object on each field | Accepted | 2026-10-31 |
+| [0015](0015-score-evaluation-by-value-over-fully-reviewed-fields.md) | Score the evaluation by value, over fully reviewed fields only | Accepted | 2026-10-31 |
+| [0016](0016-let-eval-score-saved-outputs.md) | Let eval score saved outputs as well as extract again | Accepted | 2026-10-31 |
 <!-- adr-index:end -->

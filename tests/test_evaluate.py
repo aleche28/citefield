@@ -1,0 +1,215 @@
+import pytest
+from fakes import FakeBackend, answer, candidate, output, value
+from pdfgen import write_pdf
+
+from citefield.config import Config
+from citefield.evaluate import EvalError, evaluate, score
+from citefield.extraction import Extractor
+from citefield.output import FieldReview
+
+F = "engine_manufacturer"
+
+
+def config(*names, examples=()):
+    names = names or (F,)
+    return Config(
+        fields=[{"name": n, "description": n, "examples": list(examples)} for n in names],
+        settings={"llm": {"model": "fake/model"}},
+    )
+
+
+def confirmed_absent(result, name):
+    result.field(name).review = FieldReview(status="confirmed_absent")
+    return result
+
+
+@pytest.mark.parametrize(
+    ("golden", "predicted", "expected"),
+    [
+        pytest.param(
+            [value(F, "Onan", "accepted")],
+            [value(F, "onan ")],
+            {"true_positives": 1, "false_positives": 0, "false_negatives": 0},
+            id="normalized match",
+        ),
+        pytest.param(
+            [value(F, "Onan", "accepted")],
+            [],
+            {"true_positives": 0, "false_negatives": 1},
+            id="missed",
+        ),
+        pytest.param(
+            [value(F, "Onan", "accepted"), value(F, "Kubota", "rejected")],
+            [value(F, "Onan"), value(F, "Kubota")],
+            {"true_positives": 1, "false_positives": 1, "unjudged": 0},
+            id="rejected value predicted again",
+        ),
+        pytest.param(
+            [value(F, "Onan", "accepted")],
+            [value(F, "Onan"), value(F, "Cummins")],
+            {"true_positives": 1, "false_positives": 1, "unjudged": 1},
+            id="value nobody judged",
+        ),
+        pytest.param(
+            [value(F, "Onan Corp", "edited", reviewed_value="Onan")],
+            [value(F, "Onan Corp")],
+            {"true_positives": 0, "false_positives": 1, "false_negatives": 1, "unjudged": 0},
+            id="edited: the original is a negative",
+        ),
+        pytest.param(
+            [value(F, "Onan Corp", "edited", reviewed_value="Onan")],
+            [value(F, "Onan")],
+            {"true_positives": 1, "false_negatives": 0},
+            id="edited: the reviewed value is a positive",
+        ),
+        pytest.param(
+            [value(F, "Onan", "added")],
+            [value(F, "Onan")],
+            {"true_positives": 1},
+            id="added",
+        ),
+        pytest.param(
+            [value(F, "Onan", "accepted", context="engine")],
+            [value(F, "Onan", context="generator set")],
+            {"true_positives": 1, "context_mismatches": 1},
+            id="context differs: still a match, counted",
+        ),
+        pytest.param(
+            [value(F, "Onan", "accepted"), value(F, "Kubota")],
+            [value(F, "Cummins")],
+            {"documents": 0, "false_positives": 0, "false_negatives": 0},
+            id="pending value: field not reviewed",
+        ),
+        pytest.param(
+            [],
+            [value(F, "Onan")],
+            {"documents": 0, "false_positives": 0},
+            id="no values and not confirmed absent: not reviewed",
+        ),
+    ],
+)
+def test_score_field(golden, predicted, expected):
+    report = score([(output(**{F: golden}), output(**{F: predicted}))], config())
+    field = report.fields[0]
+    assert {k: getattr(field, k) for k in expected} == expected
+
+
+def test_precision_and_recall():
+    golden = output(**{F: [value(F, "a", "accepted"), value(F, "b", "accepted")]})
+    predicted = output(**{F: [value(F, "a"), value(F, "c"), value(F, "d")]})
+    total = score([(golden, predicted)], config()).total
+    assert (total.precision, total.recall) == (round(1 / 3, 4), 0.5)
+
+
+def test_not_found_accuracy():
+    absent = "refrigerant_type"
+    golden = confirmed_absent(output(**{absent: "not_found"}), absent)
+    cfg = config(absent)
+    right = score([(golden, output(**{absent: "not_found"}))], cfg).total
+    wrong = score([(golden, output(**{absent: [value(absent, "R-134a")]}))], cfg).total
+    assert (right.confirmed_absent, right.not_found_correct, right.not_found_accuracy) == (1, 1, 1)
+    assert (wrong.not_found_correct, wrong.false_positives, wrong.unjudged) == (0, 1, 1)
+
+
+def test_values_in_examples_are_left_out():
+    golden = output(**{F: [value(F, "Onan", "accepted"), value(F, "Kubota", "accepted")]})
+    predicted = output(**{F: [value(F, "Onan"), value(F, "Kubota")]})
+    field = score([(golden, predicted)], config(examples=["kubota"])).fields[0]
+    assert (field.true_positives, field.false_positives) == (1, 0)
+
+
+def test_carried_over_values_count_once():
+    first = output("tm", **{F: [value(F, "Onan", "accepted")]})
+    second = output("tm", **{F: [value(F, "Onan", "accepted")]})
+    second.field(F).values[0].review.carried_from = first.run.run_id
+    second.run.started_at = second.run.started_at.replace(year=2027)
+    predicted = output("tm", **{F: [value(F, "Onan")]})
+    total = score([(second, predicted), (first, predicted)], config()).total
+    assert (total.true_positives, total.false_positives) == (1, 0)
+
+
+def test_error_field_misses_everything():
+    golden = output(**{F: [value(F, "Onan", "accepted")]})
+    total = score([(golden, output(**{F: "error"}))], config()).total
+    assert (total.errors, total.false_negatives) == (1, 1)
+
+
+def test_accuracy_by_signal_range():
+    golden = output(**{F: [value(F, "a", "accepted"), value(F, "b", "rejected")]})
+    predicted = output(
+        **{
+            F: [
+                value(F, "a", evidence_match=0.95, confidence=None),
+                value(F, "b", evidence_match=0.3, confidence=0.85),
+                value(F, "c", evidence_match=1.0, confidence=0.5),
+            ]
+        }
+    )
+    report = score([(golden, predicted)], config())
+    buckets = {(b.signal, b.low): (b.values, b.correct) for b in report.signals}
+    assert buckets[("evidence_match", 0.0)] == (1, 0)
+    assert buckets[("evidence_match", 0.5)] == (0, 0)
+    assert buckets[("evidence_match", 0.85)] == (2, 1)
+    assert buckets[("model_confidence", 0.5)] == (1, 0)
+    assert buckets[("model_confidence", 0.85)] == (1, 0)
+    assert buckets[("model_confidence", None)] == (1, 1)
+
+
+def test_warns_about_config_mismatch():
+    golden = output(**{F: [value(F, "Onan", "accepted")], "firing_order": "not_found"})
+    report = score([(golden, output(**{F: [value(F, "Onan")]}))], config(F, "engine_model"))
+    assert any("different field config" in w for w in report.warnings)
+    assert any("'firing_order' is not in the config" in w for w in report.warnings)
+    assert any("'engine_model' is not in the golden output" in w for w in report.warnings)
+
+
+def test_unjudged_values_are_listed():
+    golden = output("tm", **{F: [value(F, "Onan", "accepted")]})
+    predicted = output("tm", **{F: [value(F, "Cummins", context="engine")]})
+    [unjudged] = score([(golden, predicted)], config()).unjudged
+    assert (unjudged.document_id, unjudged.raw_value, unjudged.context) == (
+        "tm",
+        "Cummins",
+        "engine",
+    )
+
+
+def test_evaluate_scores_saved_predictions(tmp_path):
+    golden, predictions = tmp_path / "golden", tmp_path / "predictions"
+    golden.mkdir()
+    predictions.mkdir()
+    output("tm", **{F: [value(F, "Onan", "accepted")]}).to_json(golden / "tm.json")
+    output("tm", **{F: [value(F, "Onan")]}).to_json(predictions / "tm.json")
+
+    report = evaluate(golden, config(), predictions=predictions)
+    assert report.golden == str(golden)
+    assert report.total.true_positives == 1
+
+    (predictions / "tm.json").unlink()
+    with pytest.raises(EvalError, match="no output for tm"):
+        evaluate(golden, config(), predictions=predictions)
+
+
+def test_evaluate_extracts_again(tmp_path):
+    manual = write_pdf(tmp_path / "tm.pdf", ["Engine manufacturer: Onan"])
+    cfg = config()
+    first = Extractor(cfg, backend=FakeBackend(response("Onan"))).extract(manual)
+    first.field(F).values[0].review.status = "accepted"
+    golden = tmp_path / "golden"
+    golden.mkdir()
+    first.to_json(golden / "tm.json")
+
+    again = Extractor(cfg, backend=FakeBackend(response("Kubota")))
+    report = evaluate(golden, cfg, extractor=again)
+    assert (report.total.true_positives, report.total.false_negatives) == (0, 1)
+
+    manual.rename(tmp_path / "moved.pdf")
+    with pytest.raises(EvalError, match="not found"):
+        evaluate(golden, cfg, extractor=again)
+    again = Extractor(cfg, backend=FakeBackend(response("Onan")))
+    report = evaluate(golden, cfg, extractor=again, documents=tmp_path)
+    assert report.total.true_positives == 1
+
+
+def response(raw):
+    return {"fields": [answer(F, candidate(raw, (1, f"Engine manufacturer: {raw}")))]}

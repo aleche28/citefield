@@ -42,9 +42,14 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("outputs")
 
     evaluate = sub.add_parser("eval", help="evaluate against the golden set")
-    evaluate.add_argument("outputs")
+    evaluate.add_argument("outputs", help="folder of reviewed outputs (the golden set)")
     evaluate.add_argument("-c", "--config", required=True)
     evaluate.add_argument("--parser")
+    evaluate.add_argument(
+        "--predictions", help="score the outputs in this folder instead of extracting again"
+    )
+    evaluate.add_argument("--documents", help="folder holding the manuals, matched by SHA-256")
+    evaluate.add_argument("--json", help="also write the report to this JSON file")
 
     return parser
 
@@ -55,6 +60,7 @@ def main(argv: list[str] | None = None) -> int:
         "validate-config": _validate_config,
         "inspect": _inspect,
         "extract": _extract,
+        "eval": _eval,
     }
     command = commands.get(args.command)
     if command is None:
@@ -155,6 +161,73 @@ def _extract(args: argparse.Namespace) -> int:
             f"{result.run.tokens.input}+{result.run.tokens.output} tokens"
         )
     return 1 if failures else 0
+
+
+def _eval(args: argparse.Namespace) -> int:
+    from citefield.evaluate import EvalError, evaluate
+    from citefield.extraction import ExtractionError
+    from citefield.parsers import ParseError
+    from citefield.planning import DocumentTooLarge
+
+    if args.parser:
+        raise _CliError("--parser is not supported yet")
+    config = _load_config(args.config)
+    try:
+        report = evaluate(
+            args.outputs, config, predictions=args.predictions, documents=args.documents
+        )
+    except (EvalError, ExtractionError, ParseError, DocumentTooLarge) as exc:
+        raise _CliError(str(exc)) from exc
+    except ValidationError as exc:
+        raise _CliError(f"invalid output file\n{exc}") from exc
+    if args.json:
+        report.to_json(args.json)
+
+    for p in report.predictions:
+        print(
+            f"{p.document_id}: {p.model}, {p.prompt_version}, "
+            f"{p.tokens.input}+{p.tokens.output} tokens"
+        )
+    print()
+    width = max(len(s.name) for s in [*report.fields, report.total])
+    print(
+        f"{'field':<{width}}  docs  tp  fp  fn  unjudged  precision  recall  ctx≠  "
+        "not_found  errors"
+    )
+    for s in [*report.fields, report.total]:
+        if s.documents == 0:
+            continue
+        not_found = f"{s.not_found_correct}/{s.confirmed_absent}" if s.confirmed_absent else "-"
+        print(
+            f"{s.name:<{width}}  {s.documents:>4}  {s.true_positives:>2}  "
+            f"{s.false_positives:>2}  {s.false_negatives:>2}  {s.unjudged:>8}  "
+            f"{_fmt(s.precision):>9}  {_fmt(s.recall):>6}  {s.context_mismatches:>4}  "
+            f"{not_found:>9}  {s.errors:>6}"
+        )
+    unreviewed = [s.name for s in report.fields if s.documents == 0]
+    if unreviewed:
+        print(f"not reviewed in any document: {', '.join(unreviewed)}")
+
+    print()
+    print("signal            range        values  correct  precision")
+    for b in report.signals:
+        if b.values == 0:
+            continue
+        span = "null" if b.low is None else f"{b.low:.2f}-{b.high:.2f}"
+        print(f"{b.signal:<16}  {span:<11}  {b.values:>6}  {b.correct:>7}  {_fmt(b.precision):>9}")
+
+    if report.unjudged:
+        print("\nunjudged predictions, not in the golden set yet:")
+        for u in report.unjudged:
+            context = f" ({u.context})" if u.context else ""
+            print(f"  {u.document_id} · {u.field} · {u.value_id}: {u.raw_value!r}{context}")
+    for warning in report.warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    return 0
+
+
+def _fmt(x: float | None) -> str:
+    return "-" if x is None else f"{x:.2f}"
 
 
 if __name__ == "__main__":

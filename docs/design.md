@@ -269,9 +269,15 @@ One JSON file per document, defined by pydantic models; the repo publishes the g
             "previous": null
           }
         }
-      ]
+      ],
+      "review": { "status": "pending", "reviewer": null, "reviewed_at": null, "note": null }
     },
-    { "name": "power_supply_voltage", "status": "not_found", "values": [] }
+    {
+      "name": "power_supply_voltage",
+      "status": "not_found",
+      "values": [],
+      "review": { "status": "confirmed_absent", "reviewer": "…", "reviewed_at": "…", "note": null }
+    }
   ],
   "proposals": [
     {
@@ -299,7 +305,7 @@ One JSON file per document, defined by pydantic models; the repo publishes the g
 
 Human decisions are written into the output file, survive re-extraction, and become the evaluation set. The pattern follows Luca Bianchi's workshop (see Acknowledgements). Decision record: [ADR-0007](adr/0007-store-reviews-in-the-output-file.md).
 
-**Review.** A value's `review.status` is `pending`, `accepted`, `edited` (with `reviewed_value`), `rejected` or `added` (a value the reviewer found and the LLM missed). A field left not_found can be confirmed as absent at field level (review status confirmed_absent). The core ships `apply_review(output, decisions)` to write decisions in; the UI that collects them is out of scope for v1.
+**Review.** A value's `review.status` is `pending`, `accepted`, `edited` (with `reviewed_value`), `rejected` or `added` (a value the reviewer found and the LLM missed). An added value needs evidence like any other, verified against the document's pages when `apply_review` is given them (`evidence_match` is 0 otherwise); its `model_confidence` is null. Each field also has a `review` whose status is `pending` or `confirmed_absent`: the reviewer confirms that the manual doesn't state the field, which is allowed only when all its values are rejected. The core ships `apply_review(output, decisions)` to write decisions in, keyed by field name and `value_id`; the UI that collects them is out of scope for v1, and `scripts/review.py` writes a YAML decisions template to fill in by hand. Decision record: [ADR-0014](adr/0014-record-field-level-review-in-the-output.md).
 
 **Re-extraction.** When a document is re-run (new config, model, parser or manual revision) with `--previous`, each new value is compared with the reviewed values of the same `document_id`:
 
@@ -312,13 +318,17 @@ Human decisions are written into the output file, survive re-extraction, and bec
 
 Values the reviewer `added` are kept even if the new run misses them. Known trade-off: reconfirmation assumes the first reviewer was right; audit sampling of carried-over values is planned for later.
 
-**Evaluation.** The golden set is every reviewed value across a folder of outputs: accepted, edited and added values are positives; rejected values are negatives; fields reviewed as absent count for `not_found`. `citefield eval` re-runs extraction on those documents with the current config, model and parser, and reports per field:
+**Evaluation.** The golden set is every reviewed value across a folder of outputs: accepted, edited and added values are positives; rejected values, and the original of an edited value, are negatives; fields reviewed as absent count for `not_found`. `citefield eval` re-runs extraction on those documents with the current config, model and parser, finding each manual at its recorded path or by SHA-256 in `--documents`. With `--predictions`, it scores outputs already saved by `citefield extract` instead, so a model comparison runs extraction once per model. Decision record: [ADR-0016](adr/0016-let-eval-score-saved-outputs.md).
+
+A prediction matches a golden value on field and normalized value; context is not part of the match, and matches whose contexts differ are counted as `context_mismatches`. A field counts in a document only when it is fully reviewed: no pending values, and at least one reviewed value or confirmed absent. Then every prediction that matches no positive is a false positive, and those that match no negative either are listed as unjudged, ready to review into the golden set. Decision record: [ADR-0015](adr/0015-score-evaluation-by-value-over-fully-reviewed-fields.md). The report gives, per field and in total:
 
 - precision and recall of values
-- accuracy of `not_found`
-- for each signal, accuracy by signal range, to show which signals are worth trusting
+- accuracy of `not_found`: the share of confirmed-absent fields predicted with no values
+- for `evidence_match` and `model_confidence`, precision by signal range (below 0.5, 0.5 to 0.85, 0.85 and above, null), to show which signals are worth trusting
 
-Two exclusions keep it honest: carried-over values count once (by `value_id`), and any value that appears in a field's `examples` is left out, otherwise the eval measures whether the model copies the prompt. Passing `--parser` compares parsers on the same golden set.
+Two exclusions keep it honest: carried-over values count once (by `document_id` and `value_id`), and any value that appears in a field's `examples` is left out, otherwise the eval measures whether the model copies the prompt. `--json` writes the report with each prediction's model, prompt version, settings hash and tokens. Not yet built: accuracy by range for the other signals, and `--parser` to compare parsers on the same golden set.
+
+The golden set for the corpus lives in `corpus/golden/<config>/`, one reviewed output per manual next to its YAML decisions, scored with the config of the same name in `examples/`.
 
 ## Public API and CLI
 
@@ -337,7 +347,7 @@ updated = extractor.reextract("manuals/filler-x200-rev2.pdf",
                               previous="out/filler-x200.json")
 
 reviewed = citefield.apply_review("out/filler-x200.json", decisions)
-report = citefield.evaluate("out/", config=config)
+report = citefield.evaluate("golden/", config=config)  # or predictions="out/"
 ```
 
 The LLM backend is a protocol like the parser. The default adapter uses LiteLLM, which covers cloud APIs and local servers (Ollama, vLLM) behind one interface. Backends register through the `citefield.llm_backends` entry point. Decision record: [ADR-0005](adr/0005-litellm-as-default-llm-backend.md).
@@ -366,7 +376,7 @@ class Completion:
 | `citefield inspect <file> [--parser docling]`            | Show parsed text, tables and low-text units, no LLM. For debugging parsers.            |
 | `citefield validate-config fields.yaml`                  | Check the schema and units.                                                            |
 | `citefield proposals report out/`                        | Count recurring proposals across outputs, ready to promote into the config.            |
-| `citefield eval out/ -c fields.yaml [--parser …]`        | Evaluate against the golden set.                                                       |
+| `citefield eval golden/ -c fields.yaml [--predictions out/] [--documents dir/] [--json report.json]` | Evaluate against the golden set, extracting again or scoring saved outputs. |
 
 **Module layout**
 
@@ -409,6 +419,8 @@ v1 is a library plus CLI for PDF and Markdown that extracts, verifies, merges, p
 - [ ] Token counting for arbitrary models: LiteLLM's counter, or a conservative character heuristic as fallback?
 - [ ] Choosing the LLM backend: the extractor always builds the LiteLLM adapter, and a third-party backend registered under `citefield.llm_backends` can only be passed to `Extractor` directly. Should a setting such as `settings.llm.backend` select it through the entry point, and how does a backend get built from settings? Both change the config schema and the plugin protocol, so the answer needs an ADR.
 - [ ] Prompt order for prefix caching: the field list comes before the manual, so calls on the same document share only the system prompt. With the manual first, extra field batches, runs and chunks could reuse a cached prefix at a lower price. It changes the prompt, so it needs a new prompt version; compare both orders in the model bake-off.
+- [ ] Wrong unjudged predictions: the evaluation lists predictions the golden set doesn't cover, but only correct ones can be reviewed in (as added values). How should a wrong one become a negative: copy a prediction's unjudged values into the golden output as pending, or let decisions reject a value by its raw value?
+- [ ] Carried-over values in the evaluation: they count once by `document_id` and `value_id`, but carry-over isn't built yet. When two revisions of a manual are both in the golden set, should a carried-over value be scored on the later revision at all, and should a carried-over `confirmed_absent` count again?
 - [ ] Parallel calls: a document's batch calls run one after another, and `--workers` is accepted but not used yet. Should calls within a document run concurrently, files in a folder, or both, and how do they share the provider's rate limits?
 - [x] Final project name: citefield.
 

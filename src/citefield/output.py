@@ -16,6 +16,7 @@ OUTPUT_SCHEMA_VERSION = 1
 FieldStatus = Literal["found", "not_found", "conflict", "error"]
 ValueStatus = Literal["found", "derived"]
 ReviewStatus = Literal["pending", "accepted", "edited", "rejected", "added"]
+FieldReviewStatus = Literal["pending", "confirmed_absent"]
 ScalarValue = str | int | float | bool | None
 
 
@@ -46,6 +47,13 @@ class Review(BaseModel):
     previous: Any = None
 
 
+class FieldReview(BaseModel):
+    status: FieldReviewStatus = "pending"
+    reviewer: str | None = None
+    reviewed_at: datetime | None = None
+    note: str | None = None
+
+
 class Value(BaseModel):
     value_id: str
     status: ValueStatus
@@ -65,6 +73,7 @@ class FieldResult(BaseModel):
     status: FieldStatus
     values: list[Value] = []
     error: str | None = None  # set when status is "error"
+    review: FieldReview = FieldReview()
 
 
 class Proposal(BaseModel):
