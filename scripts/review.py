@@ -36,26 +36,26 @@ def template(result: ExtractionResult) -> str:
         if field.error:
             lines.append(f"    # error: {_one_line(field.error)}")
         lines.append(f"    status: {field.review.status}  # or confirmed_absent")
-        lines.append("    values:")
-        header = len(lines) - 1
+        value_lines = []
         for v in field.values:
             context = f" ({v.context})" if v.context else ""
             if v.review.status == "added":
-                lines.append(f"      # added by the reviewer: {_quote(v.raw_value)}{context}")
+                value_lines.append(f"      # added by the reviewer: {_quote(v.raw_value)}{context}")
                 continue
-            lines.append(f"      # {_quote(v.raw_value)}{context}, {v.raw_unit or 'no unit'}")
+            value_lines.append(f"      # {_quote(v.raw_value)}{context}, {v.raw_unit or 'no unit'}")
             for e in v.evidence:
-                lines.append(f"      #   p.{e.page}: {_quote(e.quote)}")
-            lines.append(
+                value_lines.append(f"      #   p.{e.page}: {_quote(e.quote)}")
+            value_lines.append(
                 f"      #   evidence_match {v.signals.evidence_match}, "
                 f"model_confidence {v.signals.model_confidence}"
             )
-            lines.append(f"      - value_id: {v.value_id}")
-            lines.append(f"        status: {v.review.status}")
+            value_lines.append(f"      - value_id: {v.value_id}")
+            value_lines.append(f"        status: {v.review.status}")
             if v.review.reviewed_value is not None:
-                lines.append(f"        reviewed_value: {_quote(v.review.reviewed_value)}")
-        if not any(line.startswith("      - value_id") for line in lines[header:]):
-            lines[header] = "    values: []"
+                value_lines.append(f"        reviewed_value: {_quote(v.review.reviewed_value)}")
+        has_values = any(line.startswith("      - value_id") for line in value_lines)
+        lines.append("    values:" if has_values else "    values: []")
+        lines.extend(value_lines)
         lines.append(
             "    added: []  # - {raw_value: ..., context: ..., evidence: [{page: 1, quote: ...}]}"
         )

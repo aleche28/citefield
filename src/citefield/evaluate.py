@@ -246,7 +246,7 @@ def _truth(doc_id: str, fdef: FieldDef, g_field: FieldResult, seen: set[tuple[st
                 continue
             seen.add((doc_id, v.value_id))
             truth.positives.setdefault(_golden_key(v), set()).add(_context(v))
-        if review.status == "edited" or review.status == "rejected":
+        if review.status in ("edited", "rejected"):
             truth.negatives.add(value_key(v.value, v.raw_value))
     truth.negatives -= truth.positives.keys()
     return truth
@@ -334,12 +334,12 @@ def _load_outputs(folder: str | Path) -> list[ExtractionResult]:
 def _hash_files(folder: Path) -> dict[str, Path]:
     if not folder.is_dir():
         raise EvalError(f"{folder}: not a directory")
-    hashes = {}
-    for path in sorted(folder.iterdir()):
-        if path.is_file():
-            with path.open("rb") as f:
-                hashes[hashlib.file_digest(f, "sha256").hexdigest()] = path
-    return hashes
+    return {_sha256(path): path for path in sorted(folder.iterdir()) if path.is_file()}
+
+
+def _sha256(path: Path) -> str:
+    with path.open("rb") as f:
+        return hashlib.file_digest(f, "sha256").hexdigest()
 
 
 def _locate(
@@ -354,7 +354,6 @@ def _locate(
     path = Path(doc.path)
     if not path.is_file():
         raise EvalError(f"{doc.path}: not found; pass the folder that holds it as documents")
-    with path.open("rb") as f:
-        if hashlib.file_digest(f, "sha256").hexdigest() != doc.sha256:
-            raise EvalError(f"{doc.path}: not the file the golden output was made from")
+    if _sha256(path) != doc.sha256:
+        raise EvalError(f"{doc.path}: not the file the golden output was made from")
     return path
