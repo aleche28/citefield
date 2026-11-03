@@ -22,6 +22,10 @@ class Completion:
     output_tokens: int | None = None
 
 
+class UnsupportedSettingError(Exception):
+    """The model rejects a setting, so every call would fail the same way."""
+
+
 class LLMBackend(Protocol):
     name: str
     context_window: int
@@ -32,6 +36,6 @@ class LLMBackend(Protocol):
         """Return the response validated against `schema`.
 
         Raises `pydantic.ValidationError` if the response doesn't match the schema, so the
-        caller can retry.
+        caller can retry, and `UnsupportedSettingError` if the model rejects a setting.
         """
         ...

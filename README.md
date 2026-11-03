@@ -23,11 +23,13 @@ Install the CLI (citefield is on PyPI from the first release, 0.1.0; until then,
 uv tool install citefield   # or: pipx install citefield
 ```
 
-citefield calls the model through LiteLLM, which reads the provider's API key from the environment. The example configs use Claude Haiku 5.5 on OpenRouter:
+citefield calls the model through LiteLLM, so any provider LiteLLM supports works, and the provider's API key comes from the environment. The example configs use Claude Haiku 5.5 on OpenRouter:
 
 ```sh
 export OPENROUTER_API_KEY=sk-or-...
 ```
+
+With an Anthropic key instead, set `ANTHROPIC_API_KEY` and add `--model anthropic/claude-haiku-5-5` to the commands below. The [getting-started guide](https://github.com/aleche28/citefield/blob/main/docs/guides/getting-started.md#choose-a-provider) lists the model names and variables for Azure, OpenAI, Gemini and Ollama.
 
 Define the fields you want:
 

@@ -35,7 +35,8 @@ def test_inspect(tmp_path, capsys):
     assert "1 units, parser pdfplumber" in out
 
 
-def test_extract_dry_run_makes_no_calls(tmp_path, capsys):
+def test_extract_dry_run_makes_no_calls(tmp_path, capsys, monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
     config = tmp_path / "fields.yaml"
     config.write_text(CONFIG, encoding="utf-8")
     pdf = write_pdf(tmp_path / "m.pdf", ["Engine manufacturer: Onan"])
@@ -45,7 +46,8 @@ def test_extract_dry_run_makes_no_calls(tmp_path, capsys):
     assert not out.exists()
 
 
-def test_extract_dir_reports_broken_files_and_goes_on(tmp_path, capsys):
+def test_extract_dir_reports_broken_files_and_goes_on(tmp_path, capsys, monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
     config = tmp_path / "fields.yaml"
     config.write_text(CONFIG, encoding="utf-8")
     docs = tmp_path / "docs"
@@ -59,7 +61,7 @@ def test_extract_dir_reports_broken_files_and_goes_on(tmp_path, capsys):
     assert "good.pdf: 1 chunk(s)" in captured.out
 
 
-def test_eval_scores_saved_predictions(tmp_path, capsys):
+def test_eval_scores_saved_predictions(tmp_path, capsys, monkeypatch):
     from fakes import output, value
 
     config = tmp_path / "fields.yaml"
@@ -80,8 +82,53 @@ def test_eval_scores_saved_predictions(tmp_path, capsys):
     assert "tm · engine_manufacturer" in out and "'Kubota'" in out
     assert '"precision": 0.5' in report.read_text(encoding="utf-8")
 
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")  # without --predictions, eval calls the LLM
     assert main(["eval", str(tmp_path / "missing"), "-c", str(config)]) == 1
     assert "not a directory" in capsys.readouterr().err
+
+
+def test_missing_key_stops_before_parsing(tmp_path, capsys):
+    config = tmp_path / "fields.yaml"
+    config.write_text(CONFIG, encoding="utf-8")
+    pdf = write_pdf(tmp_path / "m.pdf", ["Engine manufacturer: Onan"])
+    assert main(["extract", str(pdf), "-c", str(config), "-o", "out", "--dry-run"]) == 1
+    captured = capsys.readouterr()
+    assert captured.err == (
+        "error: OPENROUTER_API_KEY is not set for openrouter/google/gemini-3.1-flash-lite\n"
+    )
+    assert captured.out == ""
+
+
+def test_model_flag_overrides_the_config(tmp_path, capsys, monkeypatch):
+    import litellm
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "k")
+    config = tmp_path / "fields.yaml"
+    config.write_text(CONFIG, encoding="utf-8")
+    pdf = write_pdf(tmp_path / "m.pdf", ["Engine manufacturer: Onan"])
+    args = ["extract", str(pdf), "-c", str(config), "-o", str(tmp_path / "out")]
+
+    assert main([*args, "--dry-run", "--model", "anthropic/claude-haiku-5-5"]) == 0
+    assert "1 call(s)" in capsys.readouterr().out
+
+    def completion(**kwargs):
+        assert kwargs["model"] == "anthropic/claude-haiku-5-5"
+        raise litellm.BadRequestError("temperature: not supported", model="m", llm_provider="x")
+
+    monkeypatch.setattr(litellm, "completion", completion)
+    assert main([*args, "--model", "anthropic/claude-haiku-5-5"]) == 1
+    assert capsys.readouterr().err == (
+        "error: anthropic/claude-haiku-5-5 doesn't accept temperature; "
+        "set settings.llm.temperature: null\n"
+    )
+
+
+def test_model_flag_needs_an_llm_run(tmp_path, capsys):
+    config = tmp_path / "fields.yaml"
+    config.write_text(CONFIG, encoding="utf-8")
+    args = ["eval", str(tmp_path), "-c", str(config), "--predictions", str(tmp_path)]
+    assert main([*args, "--model", "anthropic/claude-haiku-5-5"]) == 1
+    assert "--model has no effect with --predictions" in capsys.readouterr().err
 
 
 def test_help_hides_unbuilt_commands_and_flags(capsys):

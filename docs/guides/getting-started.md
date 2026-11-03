@@ -45,6 +45,36 @@ settings:
 
 The default `temperature` is 0, for models that accept it. Other `settings.llm` keys set the reasoning effort, OpenRouter provider routing and retries; they are listed under [Configuration](../design.md#configuration) in the design.
 
+### Choose a provider
+
+To use another provider, set its environment variables and pass `--model` to `extract` or `eval`. It replaces `settings.llm.model`, so the example configs work unchanged, and the output records the model used:
+
+```sh
+export ANTHROPIC_API_KEY=sk-ant-...
+uv run citefield extract corpus/manuals/tm-9-6115-642-10.pdf -c examples/generator-numbers.yaml -o out/ --model anthropic/claude-haiku-5-5
+```
+
+| Provider | Model | Environment variables | Notes |
+| --- | --- | --- | --- |
+| OpenRouter | `openrouter/anthropic/claude-haiku-5.5` | `OPENROUTER_API_KEY` | Used by the example configs. |
+| Anthropic | `anthropic/claude-haiku-5-5` | `ANTHROPIC_API_KEY` | |
+| Azure AI Foundry | `azure_ai/<deployment>` | `AZURE_AI_API_BASE`, `AZURE_AI_API_KEY` | `AZURE_AI_API_BASE` is the resource's endpoint, `https://<resource>.services.ai.azure.com`; LiteLLM adds the path. For Claude, the deployment name must contain `claude`: that's how LiteLLM knows to use Anthropic's API. |
+| Azure OpenAI | `azure/<deployment>` | `AZURE_API_BASE`, `AZURE_API_KEY`, optionally `AZURE_API_VERSION` | |
+| OpenAI | `openai/gpt-5.4-mini` | `OPENAI_API_KEY` | |
+| Gemini | `gemini/<model>` | `GEMINI_API_KEY` | |
+| Ollama | `ollama_chat/<model>` | `OLLAMA_API_BASE`, optional (default `http://localhost:11434`) | Ollama's default context is small: set `settings.chunking.max_input_tokens` to the context you give the model. Better local-model support is tracked in [#23](https://github.com/aleche28/citefield/issues/23). |
+
+On Azure, `AZURE_AD_TOKEN` can replace the key if you use Entra ID. LiteLLM's [provider docs](https://docs.litellm.ai/docs/providers) cover the rest.
+
+Before parsing anything, `extract` and `eval` check that the model's variables are set, and stop naming the missing one:
+
+```console
+$ uv run citefield extract corpus/manuals/tm-9-6115-642-10.pdf -c examples/generator-numbers.yaml -o out/ --model anthropic/claude-haiku-5-5
+error: ANTHROPIC_API_KEY is not set for anthropic/claude-haiku-5-5
+```
+
+Some settings depend on the model. Claude Haiku 5.5 rejects `temperature`, so the example configs set it to `null`, which leaves it out of the request and suits any model. When a model rejects a setting, citefield stops at the first call and says which one to change, for example `set settings.llm.temperature: null`; it doesn't drop settings silently ([ADR-0023](../adr/0023-add-a-model-flag-and-check-the-provider-setup-before-the-first-call.md)).
+
 ## Write a field config
 
 A config lists the fields to extract. Each field needs a snake_case `name` and a `description` that tells the model what to look for; `type` defaults to `string`. A number field takes a `unit`, and every value is converted to it in code with [pint](https://pint.readthedocs.io). An `enum` field takes the allowed `values`. Excerpt from `examples/generator-numbers.yaml`:

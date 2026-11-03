@@ -36,4 +36,6 @@ ADRs 0002–0010 were backfilled from design.md v1.0.0 when this log started.
 | [0020](0020-keep-number-values-scalar-and-leave-ranges-unparsed.md) | Keep number values scalar in v1, and leave ranges and tolerances unparsed | Accepted | 2026-11-01 |
 | [0021](0021-round-converted-numbers-and-treat-numbers-within-1-percent-as-the-same-value.md) | Round converted numbers to the raw value's precision, and treat numbers within 1%, or a conversion within a stated value's precision, as the same value | Accepted | 2026-11-01 |
 | [0022](0022-leave-ambiguous-numbers-unparsed-under-auto-locale.md) | Leave ambiguous numbers unparsed under the auto number locale | Accepted | 2026-11-01 |
+| [0023](0023-add-a-model-flag-and-check-the-provider-setup-before-the-first-call.md) | Add a --model flag and check the provider's setup before the first call | Accepted | 2026-11-03 |
+| [0024](0024-add-tenacity-as-a-core-dependency-so-litellm-retries-api-errors.md) | Add tenacity as a core dependency, so LiteLLM retries API errors | Accepted | 2026-11-03 |
 <!-- adr-index:end -->

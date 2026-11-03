@@ -12,6 +12,8 @@ from pydantic import ValidationError
 
 from citefield import __version__
 
+MODEL_HELP = "LiteLLM model, e.g. anthropic/claude-haiku-5-5; overrides settings.llm.model"
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -30,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     extract.add_argument("-c", "--config", required=True)
     extract.add_argument("-o", "--output", required=True)
     extract.add_argument("--dry-run", action="store_true", help="print the plan, no LLM calls")
+    extract.add_argument("--model", help=MODEL_HELP)
     extract.add_argument("--workers", type=int, default=1, help=argparse.SUPPRESS)
 
     reextract = sub.add_parser("reextract")
@@ -56,6 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--predictions", help="score the outputs in this folder instead of extracting again"
     )
     evaluate.add_argument("--documents", help="folder holding the manuals, matched by SHA-256")
+    evaluate.add_argument("--model", help=MODEL_HELP)
     evaluate.add_argument("--json", help="also write the report to this JSON file")
 
     return parser
@@ -84,17 +88,37 @@ class _CliError(Exception):
     """A problem to report on stderr, exiting with status 1."""
 
 
-def _load_config(path: str):
+def _load_config(path: str, model: str | None = None):
     from citefield.config import load_config
 
     try:
-        return load_config(path)
+        config = load_config(path)
     except OSError as exc:
         raise _CliError(f"can't read config: {exc}") from exc
     except yaml.YAMLError as exc:
         raise _CliError(f"{path}: invalid YAML: {exc}") from exc
     except ValidationError as exc:
         raise _CliError(f"{path}: invalid config\n{exc}") from exc
+    if model is None:
+        return config
+    try:
+        return config.with_model(model)
+    except ValidationError as exc:
+        raise _CliError(f"{path} with --model {model}: invalid config\n{exc}") from exc
+
+
+def _check_environment(config) -> None:
+    """Stop before parsing if the model's API key or endpoint isn't set."""
+    from citefield.llm.litellm import check_environment
+
+    model = config.settings.llm.model
+    if not model:
+        raise _CliError("settings.llm.model is not set; set it in the config or pass --model")
+    problems, warnings = check_environment(model)
+    for warning in warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    if problems:
+        raise _CliError("; ".join(problems))
 
 
 def _validate_config(args: argparse.Namespace) -> int:
@@ -126,10 +150,13 @@ def _inspect(args: argparse.Namespace) -> int:
 
 def _extract(args: argparse.Namespace) -> int:
     from citefield.extraction import ExtractionError, Extractor
+    from citefield.llm import UnsupportedSettingError
     from citefield.parsers import ParseError
     from citefield.planning import DocumentTooLarge
 
-    extractor = Extractor(_load_config(args.config))
+    config = _load_config(args.config, args.model)
+    _check_environment(config)
+    extractor = Extractor(config)
     root = Path(args.path)
     if root.is_dir():
         files = sorted(p for p in root.iterdir() if p.is_file() and extractor.parser.supports(p))
@@ -154,6 +181,8 @@ def _extract(args: argparse.Namespace) -> int:
                 )
                 continue
             result = extractor.extract(path)
+        except UnsupportedSettingError as exc:
+            raise _CliError(str(exc)) from exc  # the other files would fail the same way
         except (ExtractionError, ParseError, DocumentTooLarge) as exc:
             failures += 1
             print(f"error: {exc}", file=sys.stderr)
@@ -173,17 +202,28 @@ def _extract(args: argparse.Namespace) -> int:
 def _eval(args: argparse.Namespace) -> int:
     from citefield.evaluate import EvalError, evaluate
     from citefield.extraction import ExtractionError
+    from citefield.llm import UnsupportedSettingError
     from citefield.parsers import ParseError
     from citefield.planning import DocumentTooLarge
 
     if args.parser:
         raise _CliError("--parser is not supported yet")
-    config = _load_config(args.config)
+    if args.model and args.predictions:
+        raise _CliError("--model has no effect with --predictions, which makes no LLM calls")
+    config = _load_config(args.config, args.model)
+    if not args.predictions:
+        _check_environment(config)
     try:
         report = evaluate(
             args.outputs, config, predictions=args.predictions, documents=args.documents
         )
-    except (EvalError, ExtractionError, ParseError, DocumentTooLarge) as exc:
+    except (
+        EvalError,
+        ExtractionError,
+        ParseError,
+        DocumentTooLarge,
+        UnsupportedSettingError,
+    ) as exc:
         raise _CliError(str(exc)) from exc
     except ValidationError as exc:
         raise _CliError(f"invalid output file\n{exc}") from exc
