@@ -133,14 +133,13 @@ class LiteLLMBackend:
             if value is not None
         ]
         named = [name for name in sent if name in error.lower()]
+        if not named and not (sent and _NO_OPENROUTER_ENDPOINT in error):
+            return None
+        fixes = " or ".join(f"settings.llm.{name}: null" for name in named or sent)
         if named:
-            fixes = " or ".join(f"settings.llm.{name}: null" for name in named)
             return f"{self.model} doesn't accept {' or '.join(named)}; set {fixes}"
-        if sent and _NO_OPENROUTER_ENDPOINT in error:
-            # OpenRouter doesn't say which parameter no provider supports.
-            fixes = " or ".join(f"settings.llm.{name}: null" for name in sent)
-            return (
-                f"no OpenRouter provider for {self.model} accepts {', '.join(sent)} with "
-                f"structured output; try {fixes}"
-            )
-        return None
+        # OpenRouter doesn't say which parameter no provider supports.
+        return (
+            f"no OpenRouter provider for {self.model} accepts {', '.join(sent)} with "
+            f"structured output; try {fixes}"
+        )
