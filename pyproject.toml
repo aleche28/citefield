@@ -23,6 +23,7 @@ dependencies = [
   "pint",
   "litellm",
   "pyyaml",
+  "tenacity", # LiteLLM retries API errors with it but doesn't declare it
 ]
 
 [project.optional-dependencies]
