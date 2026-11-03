@@ -4,6 +4,7 @@ from pdfgen import write_pdf
 
 from citefield.config import Config
 from citefield.extraction import ExtractionError, Extractor
+from citefield.llm import UnsupportedSettingError
 from citefield.output import ExtractionResult
 from citefield.planning import DocumentTooLarge
 
@@ -174,6 +175,12 @@ def test_api_error_is_not_retried(manual):
     result = ex.extract(manual)
     assert result.run.llm_calls == 1
     assert result.field("engine_manufacturer").error == "RuntimeError: rate limited"
+
+
+def test_rejected_setting_stops_the_extraction(manual):
+    ex = extractor(UnsupportedSettingError("set settings.llm.temperature: null"), good_response())
+    with pytest.raises(UnsupportedSettingError):
+        ex.extract(manual)
 
 
 def test_unexpected_field_warns(manual):

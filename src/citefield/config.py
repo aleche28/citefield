@@ -117,6 +117,12 @@ class Config(BaseModel):
                 raise ValueError(f"field {field.name!r}: unknown unit {field.unit!r}") from exc
         return self
 
+    def with_model(self, model: str) -> Config:
+        """A copy with `settings.llm.model` replaced, validated again."""
+        data = self.model_dump()
+        data["settings"]["llm"]["model"] = model
+        return Config.model_validate(data)
+
     def schema_hash(self) -> str:
         """Hash of the normalized `fields` and `units`."""
         return stable_hash(

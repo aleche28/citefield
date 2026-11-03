@@ -169,7 +169,7 @@ A run makes `chunks × field batches × n_runs` extraction calls, plus one propo
 
 **2. Prompt.** Each call carries the rules, the batch's field definitions and the chunk text with explicit markers (`[[page 12]]`, `[[table t3 · page 12]]`). The rules: cite evidence for every value, copy the raw value and unit verbatim, never use outside knowledge, return nothing for a field that is not in the text. Prompt templates are versioned and the version is recorded in the output.
 
-**3. Structured response.** The model answers through the backend's JSON-schema or tool-call mode; pydantic validates it. Invalid output is retried up to `max_retries`; a batch that still fails marks its fields `error` with the message in the field's `error`, and the other batches are unaffected. API errors are retried by the backend, not again by the core. Per field, the model returns a list of candidates:
+**3. Structured response.** The model answers through the backend's JSON-schema or tool-call mode; pydantic validates it. Invalid output is retried up to `max_retries`; a batch that still fails marks its fields `error` with the message in the field's `error`, and the other batches are unaffected. API errors are retried by the backend, not again by the core ([ADR-0024](adr/0024-add-tenacity-as-a-core-dependency-so-litellm-retries-api-errors.md)). A setting the model rejects, such as `temperature`, would fail every batch the same way, so it stops the extraction instead, naming the setting to change. Per field, the model returns a list of candidates:
 
 - `raw_value` and `raw_unit`, verbatim
 - `context`: what the value applies to (model, format, condition), if stated
@@ -374,16 +374,18 @@ class Completion:
     output_tokens: int | None
 ```
 
-`complete_structured` raises `pydantic.ValidationError` when the response doesn't match the schema, so the core can retry. The LiteLLM adapter leaves out `temperature` when it is null, and on OpenRouter it routes only to providers that support every parameter it sends, so a structured-output request never reaches a provider that ignores the schema. Decision record: [ADR-0012](adr/0012-llm-backends-return-token-usage.md).
+`complete_structured` raises `pydantic.ValidationError` when the response doesn't match the schema, so the core can retry, and `UnsupportedSettingError` when the model rejects a setting, which stops the extraction. The LiteLLM adapter leaves out `temperature` when it is null, and on OpenRouter it routes only to providers that support every parameter it sends, so a structured-output request never reaches a provider that ignores the schema. Decision record: [ADR-0012](adr/0012-llm-backends-return-token-usage.md).
+
+**Choosing a provider.** Any model LiteLLM supports works, named with its provider prefix (`anthropic/…`, `azure_ai/…`, `openrouter/…`). `--model` on `extract` and `eval` replaces `settings.llm.model`, so the example configs run on any provider unchanged, and the output records the model used. Before parsing, the CLI checks the environment variables the model needs and stops naming the missing one (Ollama's `OLLAMA_API_BASE` only warns, since localhost is the default). `eval --predictions` makes no calls, so it skips the check and doesn't take `--model`. Decision record: [ADR-0023](adr/0023-add-a-model-flag-and-check-the-provider-setup-before-the-first-call.md).
 
 | Command                                                  | What it does                                                                           |
 | -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `citefield extract <file or dir> -c fields.yaml -o out/` | Extract; one JSON per document. `--dry-run` prints chunks, calls and a token estimate. |
+| `citefield extract <file or dir> -c fields.yaml -o out/ [--model m]` | Extract; one JSON per document. `--dry-run` prints chunks, calls and a token estimate. |
 | `citefield reextract <file> --previous out/x.json`       | Re-run and carry reviews over.                                                         |
 | `citefield inspect <file> [--parser docling]`            | Show parsed text, tables and low-text units, no LLM. For debugging parsers.            |
 | `citefield validate-config fields.yaml`                  | Check the schema and units.                                                            |
 | `citefield proposals report out/`                        | Count recurring proposals across outputs, ready to promote into the config.            |
-| `citefield eval golden/ -c fields.yaml [--predictions out/] [--documents dir/] [--json report.json]` | Evaluate against the golden set, extracting again or scoring saved outputs. |
+| `citefield eval golden/ -c fields.yaml [--model m \| --predictions out/] [--documents dir/] [--json report.json]` | Evaluate against the golden set, extracting again or scoring saved outputs. |
 
 `reextract`, `proposals report`, `extract --workers` and `eval --parser` aren't built yet. They are left out of `--help` until the slice that implements them: the two commands exit with status 2, `--parser` is an error and `--workers` is ignored. A step-by-step walk through the working commands is in the [getting-started guide](guides/getting-started.md).
 
@@ -451,6 +453,7 @@ citefield is licensed under **Apache 2.0**, which adds an explicit patent grant 
 | pint            | BSD-3-Clause                              | Unit conversion                                                    |
 | LiteLLM         | MIT (core)                                | Default LLM backend                                                |
 | PyYAML          | MIT                                       | Config loading                                                     |
+| tenacity        | Apache-2.0                                | Retries for LiteLLM's API calls, which LiteLLM doesn't declare     |
 | docling (extra) | MIT code; models under their own licenses | Optional parser                                                    |
 | pypdf (extra)   | BSD-3-Clause                              | Optional parser                                                    |
 | PyMuPDF (extra) | AGPL-3.0 or commercial                    | Optional parser; installing it puts AGPL obligations on that setup |

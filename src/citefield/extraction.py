@@ -10,7 +10,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from citefield.config import Config, FieldDef
-from citefield.llm.base import Completion, LLMBackend, Message
+from citefield.llm.base import Completion, LLMBackend, Message, UnsupportedSettingError
 from citefield.merge import Draft, field_status, merge
 from citefield.output import (
     DocumentInfo,
@@ -173,6 +173,7 @@ class Extractor:
         """Call the backend, retrying invalid responses up to `max_retries` times.
 
         Returns the completion (None on failure), the number of attempts and the last error.
+        Raises `UnsupportedSettingError` if the model rejects a setting.
         """
         retries = self.config.settings.llm.max_retries
         error = "no response"
@@ -181,6 +182,8 @@ class Extractor:
                 completion = self.backend.complete_structured(messages, extract_v1.ExtractResponse)
             except ValidationError as exc:
                 error = f"invalid response after {attempt} attempt(s): {exc}"
+            except UnsupportedSettingError:
+                raise  # every batch would fail the same way
             except Exception as exc:  # API errors; the backend already retried them
                 return None, attempt, f"{type(exc).__name__}: {exc}"
             else:
