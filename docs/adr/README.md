@@ -38,4 +38,5 @@ ADRs 0002–0010 were backfilled from design.md v1.0.0 when this log started.
 | [0022](0022-leave-ambiguous-numbers-unparsed-under-auto-locale.md) | Leave ambiguous numbers unparsed under the auto number locale | Accepted | 2026-11-01 |
 | [0023](0023-add-a-model-flag-and-check-the-provider-setup-before-the-first-call.md) | Add a --model flag and check the provider's setup before the first call | Accepted | 2026-11-03 |
 | [0024](0024-add-tenacity-as-a-core-dependency-so-litellm-retries-api-errors.md) | Add tenacity as a core dependency, so LiteLLM retries API errors | Accepted | 2026-11-03 |
+| [0025](0025-version-from-the-git-tag-and-release-to-pypi-on-tag-push.md) | Take the version from the git tag, and release to PyPI when a tag is pushed | Accepted | 2026-11-05 |
 <!-- adr-index:end -->

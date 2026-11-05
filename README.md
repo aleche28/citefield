@@ -17,7 +17,7 @@ LLMs are good at finding values in long documents and bad at proving where those
 
 ## Quick start
 
-Install the CLI (citefield is on PyPI from the first release, 0.1.0; until then, [install from source](https://github.com/aleche28/citefield/blob/main/docs/guides/getting-started.md#install)):
+Install the CLI from PyPI:
 
 ```sh
 uv tool install citefield   # or: pipx install citefield
