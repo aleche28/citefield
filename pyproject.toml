@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "citefield"
-version = "0.0.1"
+dynamic = ["version"]
 description = "Extract metadata from technical manuals, with a verifiable citation for every value."
 readme = "README.md"
 license = "Apache-2.0"
@@ -12,7 +12,7 @@ license-files = ["LICENSE"]
 authors = [{ name = "Alessio Chessa", email = "ale.chessa28@gmail.com" }]
 requires-python = ">=3.11"
 classifiers = [
-  "Development Status :: 1 - Planning",
+  "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3",
   "Topic :: Text Processing :: General",
@@ -48,9 +48,22 @@ litellm = "citefield.llm.litellm:LiteLLMBackend"
 [dependency-groups]
 dev = ["pytest", "ruff"]
 
+# The version comes from the git tag: v0.2.0 -> 0.2.0 (ADR-0025).
+[tool.hatch.version]
+source = "vcs"
+
+# Builds between tags get 0.2.dev3, not 0.2.dev3+gabc1234: PyPI rejects local versions,
+# and the TestPyPI dry run publishes such a build.
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
 # The test corpus keeps its own licenses and is not shipped (ADR-0011).
 [tool.hatch.build.targets.sdist]
 exclude = ["/corpus"]
+
+# Rebuild the editable install, and so its version, on new commits and tags.
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
 
 [tool.ruff]
 line-length = 100

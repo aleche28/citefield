@@ -14,8 +14,6 @@ To use the CLI on your own manuals, install it from PyPI as a tool:
 uv tool install citefield   # or: pipx install citefield
 ```
 
-citefield isn't on PyPI until the first release (0.1.0); until then, install from source as below.
-
 To follow this guide, clone the repository instead: the example configs, the corpus manuals and the review script live there and aren't part of the package.
 
 ```sh

@@ -438,6 +438,10 @@ v1 is a library plus CLI for PDF and Markdown that extracts, verifies, merges, p
 - [ ] Prompt for number fields (`extract-v2`): the golden runs on the number configs showed the model copying both forms into one raw value (`114 cu. in. (1.9 L)`, which doesn't parse), dropping "per hour" from a raw unit (`gal.` for a rate, which doesn't convert), and splitting a range into two values labelled lower and upper limit. Which rules fix these without hurting the string fields? Compare on both golden sets. Issue [#9](https://github.com/aleche28/citefield/issues/9).
 - [x] Final project name: citefield.
 
+## Releases
+
+The version comes from the git tag through hatch-vcs: tag `v0.2.0` builds 0.2.0, and builds between tags get a dev version such as `0.2.dev3`. Versions follow SemVer 0.x, so a minor version may break things. Pushing a `v*` tag runs `.github/workflows/release.yml`: the full CI, a check that the built files carry the tag's version, then, after a maintainer approves the `pypi` environment, Trusted Publishing to PyPI and a GitHub Release with generated notes. `rc` tags are pre-releases. Running the workflow by hand publishes a dev build to TestPyPI. citefield ships on PyPI only. How to cut one: [guides/releasing.md](guides/releasing.md). Decision record: [ADR-0025](adr/0025-version-from-the-git-tag-and-release-to-pypi-on-tag-push.md).
+
 ## Acknowledgements and licensing
 
 citefield is licensed under **Apache 2.0**, which adds an explicit patent grant over MIT. Every core dependency is permissive; the only copyleft parser is an opt-in extra.

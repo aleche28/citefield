@@ -555,7 +555,6 @@ wheels = [
 
 [[package]]
 name = "citefield"
-version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "litellm" },
@@ -596,7 +595,7 @@ requires-dist = [
     { name = "pyyaml" },
     { name = "tenacity" },
 ]
-provides-extras = ["docling", "pypdf", "pymupdf"]
+provides-extras = ["docling", "pymupdf", "pypdf"]
 
 [package.metadata.requires-dev]
 dev = [
